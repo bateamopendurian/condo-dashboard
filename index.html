@@ -1,0 +1,3285 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🏠 แผนเก็บเงินคอนโด – Financial Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg:#0d0d1a;--card:#14142a;--card2:#1a1a35;
+    --accent:#7c3aed;--accent2:#06b6d4;--accent3:#10b981;
+    --warn:#f59e0b;--danger:#ef4444;
+    --text:#e2e8f0;--muted:#94a3b8;--border:#2d2d50;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,sans-serif;font-size:14px;}
+  /* HEADER */
+  .header{background:linear-gradient(135deg,#1e1040 0%,#0d0d1a 60%);border-bottom:1px solid var(--border);padding:16px 24px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;position:sticky;top:0;z-index:100;}
+  .header h1{font-size:1.25rem;font-weight:700;color:#fff;}
+  .header .sub{font-size:11px;color:var(--muted);margin-top:2px;}
+  .df{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .df label{font-size:11px;color:var(--muted);}
+  .df input[type=date]{background:var(--card2);border:1px solid var(--border);color:var(--text);padding:5px 9px;border-radius:7px;font-size:12px;}
+  .btn{background:var(--accent);color:#fff;border:none;padding:6px 14px;border-radius:7px;cursor:pointer;font-size:12px;font-weight:600;}
+  .btn:hover{opacity:.85;}
+  .btn-sm{background:var(--card2);border:1px solid var(--border);color:var(--muted);padding:4px 10px;border-radius:6px;cursor:pointer;font-size:11px;}
+  .btn-sm:hover{border-color:var(--accent);color:var(--accent);}
+  .btn-gs{background:linear-gradient(90deg,#16a34a,#15803d);color:#fff;border:none;padding:5px 12px;border-radius:7px;cursor:pointer;font-size:11px;font-weight:600;display:flex;align-items:center;gap:5px;}
+  .btn-gs:hover{opacity:.85;}
+  /* SHEETS PANEL */
+  .gs-panel{background:#0f2a1a;border:1px solid #16a34a;border-radius:12px;padding:14px 18px;margin-bottom:16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+  .gs-panel.error{background:#2a0f0f;border-color:#ef4444;}
+  .gs-dot{width:8px;height:8px;border-radius:50%;background:#16a34a;flex-shrink:0;}
+  .gs-dot.err{background:#ef4444;}
+  .gs-dot.loading{background:#f59e0b;animation:pulse 1s infinite;}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
+  .gs-info{flex:1;}
+  .gs-info .title{font-size:12px;font-weight:600;color:#4ade80;}
+  .gs-info .sub{font-size:10px;color:#94a3b8;margin-top:2px;}
+  .gs-panel.error .gs-info .title{color:#f87171;}
+  /* MAIN */
+  .main{padding:16px 24px;max-width:1600px;margin:0 auto;}
+  /* ALERTS */
+  #alertBanner{border-radius:12px;padding:11px 16px;margin-bottom:16px;display:none;align-items:center;gap:10px;font-weight:600;font-size:13px;}
+  #alertBanner.show{display:flex;}
+  #infoBar{background:#1a1a35;border:1px solid #2d2d50;border-radius:8px;padding:8px 14px;margin-bottom:14px;font-size:11px;color:#64748b;display:none;}
+  #infoBar.show{display:block;}
+  /* KPIs */
+  .kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(175px,1fr));gap:12px;margin-bottom:16px;}
+  .kpi-card{background:var(--card);border:1px solid var(--border);border-radius:13px;padding:15px 17px;position:relative;overflow:hidden;transition:transform .2s;}
+  .kpi-card:hover{transform:translateY(-2px);}
+  .kpi-card::before{content:"";position:absolute;top:0;left:0;right:0;height:3px;}
+  .kpi-card.income::before{background:var(--accent3);}
+  .kpi-card.expense::before{background:var(--danger);}
+  .kpi-card.saving::before{background:var(--accent);}
+  .kpi-card.fund::before{background:var(--accent2);}
+  .kpi-card.cash::before{background:var(--warn);}
+  .kpi-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;}
+  .kpi-val{font-size:1.4rem;font-weight:700;line-height:1;margin-bottom:3px;}
+  .kpi-card.income .kpi-val{color:#34d399;}
+  .kpi-card.expense .kpi-val{color:#f87171;}
+  .kpi-card.saving .kpi-val{color:#a78bfa;}
+  .kpi-card.fund .kpi-val{color:#22d3ee;}
+  .kpi-card.cash .kpi-val{color:#fcd34d;}
+  .kpi-sub{font-size:10px;color:var(--muted);}
+  /* TRACKER */
+  .tracker{background:var(--card);border:1px solid var(--border);border-radius:15px;padding:20px;margin-bottom:16px;}
+  .tr-top{display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px;}
+  .tr-top h2{font-size:13px;font-weight:700;}
+  .tr-top .note{font-size:10px;color:var(--muted);margin-top:3px;}
+  .tr-stats{display:flex;gap:18px;flex-wrap:wrap;}
+  .tst .v{font-size:1.3rem;font-weight:700;color:var(--accent2);}
+  .tst .l{font-size:10px;color:var(--muted);}
+  .pl{display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-bottom:4px;}
+  .pb-bg{background:var(--card2);border-radius:99px;height:13px;overflow:hidden;border:1px solid var(--border);}
+  .pb-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,#7c3aed,#06b6d4);transition:width .6s ease;}
+  .yr-row{display:flex;justify-content:space-between;margin-top:4px;}
+  .yr{font-size:9px;color:var(--muted);text-align:center;}
+  .yr.on{color:var(--accent2);font-weight:700;}
+  .cd-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:9px;margin-top:12px;}
+  .cd-box{background:var(--card2);border:1px solid var(--border);border-radius:9px;padding:10px;text-align:center;}
+  .cd-num{font-size:1.9rem;font-weight:700;color:var(--accent2);line-height:1;}
+  .cd-lbl{font-size:9px;color:var(--muted);margin-top:3px;}
+  /* CHARTS */
+  .r1{display:grid;grid-template-columns:3fr 2fr;gap:13px;margin-bottom:13px;}
+  .r2{display:grid;grid-template-columns:1fr 1fr;gap:13px;margin-bottom:13px;}
+  .cc{background:var(--card);border:1px solid var(--border);border-radius:15px;padding:17px;}
+  .cc h3{font-size:12px;font-weight:600;margin-bottom:13px;}
+  .exp-tbl{width:100%;border-collapse:collapse;font-size:12px;}
+  .exp-tbl th{text-align:left;padding:6px 9px;font-size:10px;color:var(--muted);text-transform:uppercase;border-bottom:1px solid var(--border);}
+  .exp-tbl td{padding:6px 9px;border-bottom:1px solid #1e1e38;}
+  .exp-tbl tr:hover td{background:var(--card2);}
+  .bm{height:5px;border-radius:99px;display:inline-block;vertical-align:middle;margin-right:5px;}
+  .badge{display:inline-block;padding:2px 7px;border-radius:99px;font-size:10px;font-weight:600;}
+  .bg{background:#064e3b;color:#34d399;}.by{background:#451a03;color:#fcd34d;}.br{background:#450a0a;color:#f87171;}
+  .quick{display:flex;gap:5px;flex-wrap:wrap;}
+  footer{text-align:center;padding:16px;color:var(--muted);font-size:11px;border-top:1px solid var(--border);margin-top:14px;}
+  @media(max-width:900px){.r1,.r2{grid-template-columns:1fr;}}
+  .spinner{display:inline-block;width:12px;height:12px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;margin-right:5px;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>🏠 แผนเก็บเงินคอนโด — Financial Dashboard</h1>
+    <div class="sub">อัปเดต: <span id="upd"></span> &nbsp;|&nbsp; แหล่งข้อมูล: <span id="srcLabel" style="color:#22d3ee">Embedded</span></div>
+  </div>
+  <div class="df">
+    <div class="quick">
+      <button class="btn-sm" onclick="setR('all')">ทั้งหมด</button>
+      <button class="btn-sm" onclick="setR('ytd')">YTD</button>
+      <button class="btn-sm" onclick="setR('2024')">2024</button>
+      <button class="btn-sm" onclick="setR('2025')">2025</button>
+      <button class="btn-sm" onclick="setR('2026')">2026</button>
+    </div>
+    <label>ตั้งแต่</label>
+    <input type="date" id="sd" value="2024-01-01">
+    <label>ถึง</label>
+    <input type="date" id="ed">
+    <button class="btn-gs" onclick="loadFromSheets()" id="gsBtn">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 1.5L18.5 9H13V3.5zM6 20V4h5v7h7v9H6z"/></svg>
+      🔄 โหลดจาก Google Sheets
+    </button>
+    <button class="btn" onclick="go()" id="refreshBtn">📊 อัปเดต</button>
+  </div>
+</div>
+
+<div class="main">
+  <!-- SETUP GUIDE — hidden by default now that URL is configured -->
+  <div id="setupGuide" style="background:#0f1f2e;border:1px solid #0ea5e9;border-radius:14px;padding:18px 22px;margin-bottom:16px;display:none">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:14px">
+      <div style="font-size:13px;font-weight:700;color:#38bdf8">📋 วิธีเชื่อมต่อ Google Sheets (ต้องทำครั้งแรกครั้งเดียว)</div>
+      <button onclick="document.getElementById('setupGuide').style.display='none'" style="background:none;border:none;color:#64748b;cursor:pointer;font-size:18px;line-height:1">×</button>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px">
+      <div style="background:#0d1b2a;border-radius:10px;padding:12px;border:1px solid #1e3a5f">
+        <div style="font-size:11px;font-weight:700;color:#0ea5e9;margin-bottom:6px">① เปิด Google Sheets</div>
+        <div style="font-size:11px;color:#94a3b8">เปิดไฟล์ <strong style="color:#e2e8f0">แผนเก็บเงิน คอนโด</strong> ใน Google Sheets</div>
+      </div>
+      <div style="background:#0d1b2a;border-radius:10px;padding:12px;border:1px solid #1e3a5f">
+        <div style="font-size:11px;font-weight:700;color:#0ea5e9;margin-bottom:6px">② File → Share → Publish to the web</div>
+        <div style="font-size:11px;color:#94a3b8">เมนูบาร์ → <strong style="color:#e2e8f0">File</strong> → <strong style="color:#e2e8f0">Share</strong> → <strong style="color:#fbbf24">Publish to the web</strong><br><span style="color:#f87171;font-size:10px">⚠️ ไม่ใช่ "Share" ปกติ — ต้องเป็น "Publish to the web"</span></div>
+      </div>
+      <div style="background:#0d1b2a;border-radius:10px;padding:12px;border:1px solid #1e3a5f">
+        <div style="font-size:11px;font-weight:700;color:#0ea5e9;margin-bottom:6px">③ เลือก Sheet + Format</div>
+        <div style="font-size:11px;color:#94a3b8">ช่องซ้าย: เลือก <strong style="color:#e2e8f0">Transaction1</strong> (หรือ Entire Document)<br>ช่องขวา: เลือก <strong style="color:#e2e8f0">Comma-separated values (.csv)</strong></div>
+      </div>
+      <div style="background:#0d1b2a;border-radius:10px;padding:12px;border:1px solid #1e3a5f">
+        <div style="font-size:11px;font-weight:700;color:#0ea5e9;margin-bottom:6px">④ กด Publish แล้วกลับมากด</div>
+        <div style="font-size:11px;color:#94a3b8">กด <strong style="color:#4ade80">Publish</strong> ใน popup → กลับมาที่ Dashboard → กดปุ่ม <strong style="color:#4ade80">🔄 โหลดจาก Google Sheets</strong></div>
+      </div>
+    </div>
+    <div style="margin-top:12px;padding:10px 14px;background:#1a0a00;border-radius:8px;border:1px solid #92400e;font-size:11px;color:#fbbf24">
+      ⚠️ <strong>"Anyone with the link" ≠ Publish to the web</strong> — การ Share แบบปกติยังต้องล็อกอิน Google ถึงเข้าได้ การ Publish to the web เท่านั้นที่ให้ fetch แบบไม่ต้องล็อกอินได้
+    </div>
+  </div>
+
+  <div id="gsPanelWrap"></div>
+  <div id="alertBanner"></div>
+  <div id="infoBar"></div>
+  <div id="launchHelper" style="display:none;background:#0f1f0f;border:1px solid #22c55e;border-radius:12px;padding:16px 20px;margin-bottom:16px;font-size:13px;color:#86efac">
+    <div style="font-weight:700;font-size:14px;margin-bottom:8px">🚀 วิธีเชื่อมต่อ Google Sheets (แนะนำ)</div>
+    <div style="margin-bottom:6px">เปิด Terminal แล้วรัน:</div>
+    <div style="background:#0a0a0a;border-radius:8px;padding:10px 14px;font-family:monospace;color:#4ade80;margin-bottom:10px;user-select:all">cd "<span id="dashDir">ที่อยู่ไฟล์</span>" &amp;&amp; python3 -m http.server 8080</div>
+    <div>จากนั้นเปิด: <a href="http://localhost:8080/condo_dashboard.html" target="_blank" style="color:#34d399">http://localhost:8080/condo_dashboard.html</a></div>
+    <div style="margin-top:8px;color:#64748b;font-size:11px">หรือดับเบิลคลิกไฟล์ <strong style="color:#86efac">เปิด Dashboard.command</strong> ในโฟลเดอร์เดียวกัน (macOS)</div>
+    <button onclick="document.getElementById('launchHelper').style.display='none'" style="margin-top:10px;background:none;border:1px solid #374151;border-radius:6px;color:#64748b;padding:4px 12px;cursor:pointer;font-size:11px">ซ่อน</button>
+  </div>
+
+  <div class="kpi-grid">
+    <div class="kpi-card income"><div class="kpi-label">💰 รายรับทั้งหมด</div><div class="kpi-val" id="k1">—</div><div class="kpi-sub" id="k1s">—</div></div>
+    <div class="kpi-card expense"><div class="kpi-label">💸 รายจ่ายทั้งหมด</div><div class="kpi-val" id="k2">—</div><div class="kpi-sub" id="k2s">—</div></div>
+    <div class="kpi-card saving"><div class="kpi-label">🏦 เงินเก็บสะสม</div><div class="kpi-val" id="k3">—</div><div class="kpi-sub" id="k3s">—</div></div>
+    <div class="kpi-card fund"><div class="kpi-label">🎯 เงินกองกลาง (Fund)</div><div class="kpi-val" id="k4">—</div><div class="kpi-sub" id="k4s">—</div></div>
+    <div class="kpi-card cash"><div class="kpi-label">💵 เงินสดพร้อมใช้</div><div class="kpi-val" id="k5">—</div><div class="kpi-sub" id="k5s">—</div></div>
+  </div>
+
+  <div class="tracker">
+    <div class="tr-top">
+      <div>
+        <h2>🏠 ติดตามการผ่อนคอนโด — Retention Countdown (ครบ 3 ปี มิ.ย. 2570)</h2>
+        <div class="note">เริ่มผ่อน: 1 มิ.ย. 2567 &nbsp;|&nbsp; ครบ 3 ปี: 1 มิ.ย. 2570 &nbsp;|&nbsp; แจ้งเตือน: 1 เดือน / 2 สัปดาห์ / 1 สัปดาห์ ก่อนครบกำหนด</div>
+      </div>
+      <div class="tr-stats">
+        <div class="tst"><div class="v" id="tP">—</div><div class="l">ยอดผ่อนสะสม (฿)</div></div>
+        <div class="tst"><div class="v" id="tM">—</div><div class="l">เดือนที่จ่ายแล้ว</div></div>
+        <div class="tst"><div class="v" id="tY">—</div><div class="l">ปีที่ผ่านมา</div></div>
+        <div class="tst"><div class="v" id="tPct">—%</div><div class="l">ความคืบหน้า</div></div>
+      </div>
+    </div>
+    <div class="pl">
+      <span>🟢 มิ.ย. 67</span>
+      <span id="ppct" style="font-weight:700;color:var(--accent2)">—</span>
+      <span>🎯 มิ.ย. 70 (Retention)</span>
+    </div>
+    <div class="pb-bg"><div class="pb-fill" id="pb" style="width:0%"></div></div>
+    <div class="yr-row">
+      <span class="yr">เริ่ม<br>มิ.ย.67</span>
+      <span class="yr" id="y2">ปีที่ 1<br>มิ.ย.68</span>
+      <span class="yr" id="y3">ปีที่ 2<br>มิ.ย.69</span>
+      <span class="yr" id="y4">⚡ ปีที่ 3<br>มิ.ย.70</span>
+      <span class="yr">Retention<br>มิ.ย.70</span>
+    </div>
+    <div class="cd-grid">
+      <div class="cd-box"><div class="cd-num" id="cdD">—</div><div class="cd-lbl">วันที่เหลือ</div></div>
+      <div class="cd-box"><div class="cd-num" id="cdM">—</div><div class="cd-lbl">เดือนที่เหลือ</div></div>
+      <div class="cd-box"><div class="cd-num" id="cdW">—</div><div class="cd-lbl">สัปดาห์ที่เหลือ</div></div>
+      <div class="cd-box"><div class="cd-num" id="cdS">—</div><div class="cd-lbl">สถานะ</div></div>
+    </div>
+  </div>
+
+  <div class="r1">
+    <div class="cc"><h3>📊 Cash Flow รายเดือน — รายรับ vs รายจ่าย vs Net</h3><canvas id="cfC" height="260"></canvas></div>
+    <div class="cc"><h3>🍩 รายจ่ายแยกประเภท (สะสม)</h3><canvas id="pieC" height="260"></canvas></div>
+  </div>
+  <div class="r2">
+    <div class="cc"><h3>📈 เงินกองกลาง (Balance Fund) สะสม</h3><canvas id="fundC" height="220"></canvas></div>
+    <div class="cc"><h3>🏦 เงินเก็บ (Saving) รายเดือน + สะสม</h3><canvas id="savC" height="220"></canvas></div>
+  </div>
+  <div class="cc" style="margin-bottom:13px"><h3>📋 รายจ่ายแยกตามรายการ — Top สะสม</h3><div id="expTbl"></div></div>
+  <div class="cc" style="margin-bottom:13px">
+    <h3>🗓️ สรุปรายเดือน</h3>
+    <div style="overflow-x:auto">
+      <table class="exp-tbl"><thead><tr><th>เดือน</th><th>รายรับ</th><th>รายจ่าย</th><th>เงินเก็บ</th><th>Net Cash Flow</th><th>สถานะ</th></tr></thead>
+      <tbody id="mTbl"></tbody></table>
+    </div>
+  </div>
+</div>
+<footer>
+  🏠 แผนเก็บเงินคอนโด Dashboard &nbsp;|&nbsp; <span id="srcFoot">ข้อมูล: Embedded</span> &nbsp;|&nbsp; <span id="fDate"></span>
+  <br><br>
+  <span style="color:#475569;font-size:10px">
+    💡 <strong style="color:#64748b">เปิดแบบ Live Data</strong>: เปิด Terminal ที่โฟลเดอร์นี้ แล้วรัน →
+    <code onclick="navigator.clipboard.writeText('python3 -m http.server 8080').then(()=>{this.textContent='✅ Copied!';setTimeout(()=>this.textContent='python3 -m http.server 8080',2000)})"
+      style="background:#1e1e38;border:1px solid #2d2d50;padding:3px 8px;border-radius:5px;cursor:pointer;color:#22d3ee;font-size:11px"
+      title="คลิกเพื่อคัดลอก">python3 -m http.server 8080</code>
+    &nbsp; จากนั้นเปิด
+    <a href="http://localhost:8080/condo_dashboard.html" target="_blank" style="color:#7c3aed">http://localhost:8080/condo_dashboard.html</a>
+  </span>
+</footer>
+
+<script>
+// ===== EMBEDDED FALLBACK DATA =====
+const EMBEDDED = [
+  {
+    "date": "2024-06-01",
+    "description": "เงินฝาก",
+    "category": "Income",
+    "amount": 12853.95,
+    "paid_by": "Boss Phatchara",
+    "notes": "ฝากทุกวันที่ 27 ของเดือน",
+    "balance_fund": 0.0
+  },
+  {
+    "date": "2024-06-01",
+    "description": "เงินฝาก",
+    "category": "Income",
+    "amount": 10000.0,
+    "paid_by": "Mild Pranpreeya",
+    "notes": "ฝากทุกวันที่ 27 ของเดือน",
+    "balance_fund": 0.0
+  },
+  {
+    "date": "2024-06-01",
+    "description": "เงินกู้ส่วนต่างธนาคาร",
+    "category": "Income",
+    "amount": 22517.38,
+    "paid_by": "Boss Phatchara",
+    "notes": "ยอดที่กู้เกินไว้สำหรับตกแต่งห้อง",
+    "balance_fund": 0.0
+  },
+  {
+    "date": "2024-06-01",
+    "description": "ค่าไฟ",
+    "category": "Expense-Monthly",
+    "amount": 0.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "ยังไม่ได้จ่ายในเดือนนี้",
+    "balance_fund": 0.0
+  },
+  {
+    "date": "2024-06-01",
+    "description": "ค่าน้ำ",
+    "category": "Expense-Monthly",
+    "amount": 0.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "ยังไม่ได้จ่ายในเดือนนี้",
+    "balance_fund": 0.0
+  },
+  {
+    "date": "2024-06-01",
+    "description": "ค่าเน็ต",
+    "category": "Expense-Monthly",
+    "amount": 0.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "ยังไม่ได้จ่ายในเดือนนี้",
+    "balance_fund": 0.0
+  },
+  {
+    "date": "2024-06-01",
+    "description": "ค่าน้ำมัน",
+    "category": "Expense-Monthly",
+    "amount": 0.0,
+    "paid_by": "Mild Pranpreeya",
+    "notes": "ยังไม่ได้จ่ายในเดือนนี้",
+    "balance_fund": 0.0
+  },
+  {
+    "date": "2024-06-01",
+    "description": "ค่าของใช้",
+    "category": "Expense-Monthly",
+    "amount": 0.0,
+    "paid_by": "Mild Pranpreeya",
+    "notes": "ยังไม่ได้จ่ายในเดือนนี้",
+    "balance_fund": 0.0
+  },
+  {
+    "date": "2024-06-01",
+    "description": "ค่าคอนโด",
+    "category": "Expense-Monthly",
+    "amount": -15000.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "จ่ายทุกวันที่ 27 ของเดือน",
+    "balance_fund": 0.0
+  },
+  {
+    "date": "2024-06-01",
+    "description": "ค่าประกัน",
+    "category": "Expense-Monthly",
+    "amount": -600.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "จ่ายทุกวันที่ 27 ของเดือน",
+    "balance_fund": 0.0
+  },
+  {
+    "date": "2024-06-01",
+    "description": "เงินเก็บกองทุน",
+    "category": "Saving",
+    "amount": -2854.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "",
+    "balance_fund": 0.0
+  },
+  {
+    "date": "2024-06-01",
+    "description": "กันเงินจ่ายค่าส่วนกลางทั้งปี",
+    "category": "Transfer Out",
+    "amount": -1550.0,
+    "paid_by": "Kept",
+    "notes": "โอนออกจาก Kept",
+    "balance_fund": 0.0
+  },
+  {
+    "date": "2024-06-01",
+    "description": "กันเงินจ่ายค่าส่วนกลางทั้งปี",
+    "category": "Transfer In",
+    "amount": 1550.0,
+    "paid_by": "Transfer In",
+    "notes": "โอนเข้า Fund",
+    "balance_fund": 1550.0
+  },
+  {
+    "date": "2024-06-01",
+    "description": "จ่ายค่าส่วนกลางทั้งปี",
+    "category": "Expense-Yearly",
+    "amount": 0.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "ยังไม่ได้จ่ายในเดือนนี้",
+    "balance_fund": 1550.0
+  },
+  {
+    "date": "2024-07-01",
+    "description": "เงินฝาก",
+    "category": "Income",
+    "amount": 15000.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "ฝากทุกวันที่ 27 ของเดือน",
+    "balance_fund": 1550.0
+  },
+  {
+    "date": "2024-07-01",
+    "description": "เงินฝาก",
+    "category": "Income",
+    "amount": 15000.0,
+    "paid_by": "Mild Pranpreeya",
+    "notes": "ฝากทุกวันที่ 27 ของเดือน",
+    "balance_fund": 1550.0
+  },
+  {
+    "date": "2024-07-01",
+    "description": "ค่าไฟ",
+    "category": "Expense-Monthly",
+    "amount": 0.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "ยังไม่ได้จ่ายในเดือนนี้",
+    "balance_fund": 1550.0
+  },
+  {
+    "date": "2024-07-01",
+    "description": "ค่าน้ำ",
+    "category": "Expense-Monthly",
+    "amount": 0.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "ยังไม่ได้จ่ายในเดือนนี้",
+    "balance_fund": 1550.0
+  },
+  {
+    "date": "2024-07-01",
+    "description": "ค่าเน็ต",
+    "category": "Expense-Monthly",
+    "amount": 0.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "ยังไม่ได้จ่ายในเดือนนี้",
+    "balance_fund": 1550.0
+  },
+  {
+    "date": "2024-07-01",
+    "description": "ค่าน้ำมัน",
+    "category": "Expense-Monthly",
+    "amount": 0.0,
+    "paid_by": "Mild Pranpreeya",
+    "notes": "ยังไม่ได้จ่ายในเดือนนี้",
+    "balance_fund": 1550.0
+  },
+  {
+    "date": "2024-07-01",
+    "description": "ค่าของใช้",
+    "category": "Expense-Monthly",
+    "amount": 0.0,
+    "paid_by": "Mild Pranpreeya",
+    "notes": "ยังไม่ได้จ่ายในเดือนนี้",
+    "balance_fund": 1550.0
+  },
+  {
+    "date": "2024-07-01",
+    "description": "ค่าคอนโด",
+    "category": "Expense-Monthly",
+    "amount": -15000.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "จ่ายทุกวันที่ 27 ของเดือน",
+    "balance_fund": 1550.0
+  },
+  {
+    "date": "2024-07-01",
+    "description": "ค่าประกัน",
+    "category": "Expense-Monthly",
+    "amount": -600.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "จ่ายทุกวันที่ 27 ของเดือน",
+    "balance_fund": 1550.0
+  },
+  {
+    "date": "2024-07-01",
+    "description": "เงินเก็บกองทุน",
+    "category": "Saving",
+    "amount": -5000.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "",
+    "balance_fund": 1550.0
+  },
+  {
+    "date": "2024-07-01",
+    "description": "กันเงินจ่ายค่าส่วนกลางทั้งปี",
+    "category": "Transfer Out",
+    "amount": -1550.0,
+    "paid_by": "Kept",
+    "notes": "โอนออกจาก Kept",
+    "balance_fund": 1550.0
+  },
+  {
+    "date": "2024-07-01",
+    "description": "กันเงินจ่ายค่าส่วนกลางทั้งปี",
+    "category": "Transfer In",
+    "amount": 1550.0,
+    "paid_by": "Transfer In",
+    "notes": "โอนเข้า Fund",
+    "balance_fund": 3100.0
+  },
+  {
+    "date": "2024-07-01",
+    "description": "จ่ายค่าส่วนกลางทั้งปี",
+    "category": "Expense-Yearly",
+    "amount": 0.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "ยังไม่ได้จ่ายในเดือนนี้",
+    "balance_fund": 3100.0
+  },
+  {
+    "date": "2024-08-01",
+    "description": "เงินฝาก",
+    "category": "Income",
+    "amount": 15000.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "ฝากทุกวันที่ 27 ของเดือน",
+    "balance_fund": 3100.0
+  },
+  {
+    "date": "2024-08-01",
+    "description": "เงินฝาก",
+    "category": "Income",
+    "amount": 15000.0,
+    "paid_by": "Mild Pranpreeya",
+    "notes": "ฝากทุกวันที่ 27 ของเดือน",
+    "balance_fund": 3100.0
+  },
+  {
+    "date": "2024-08-01",
+    "description": "ค่าไฟ",
+    "category": "Expense-Monthly",
+    "amount": -609.31,
+    "paid_by": "Boss Phatchara",
+    "notes": "",
+    "balance_fund": 3100.0
+  },
+  {
+    "date": "2024-08-01",
+    "description": "ค่าน้ำ",
+    "category": "Expense-Monthly",
+    "amount": 0.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "ยังไม่ได้จ่ายในเดือนนี้",
+    "balance_fund": 3100.0
+  },
+  {
+    "date": "2024-08-01",
+    "description": "ค่าเน็ต",
+    "category": "Expense-Monthly",
+    "amount": -695.5,
+    "paid_by": "Boss Phatchara",
+    "notes": "",
+    "balance_fund": 3100.0
+  },
+  {
+    "date": "2024-08-01",
+    "description": "ค่าน้ำมัน",
+    "category": "Expense-Monthly",
+    "amount": -2000.0,
+    "paid_by": "Mild Pranpreeya",
+    "notes": "",
+    "balance_fund": 3100.0
+  },
+  {
+    "date": "2024-08-01",
+    "description": "ค่าของใช้",
+    "category": "Expense-Monthly",
+    "amount": -1500.0,
+    "paid_by": "Mild Pranpreeya",
+    "notes": "",
+    "balance_fund": 3100.0
+  },
+  {
+    "date": "2024-08-01",
+    "description": "ค่าคอนโด",
+    "category": "Expense-Monthly",
+    "amount": -15000.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "จ่ายทุกวันที่ 27 ของเดือน",
+    "balance_fund": 3100.0
+  },
+  {
+    "date": "2024-08-01",
+    "description": "ค่าประกัน",
+    "category": "Expense-Monthly",
+    "amount": -600.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "จ่ายทุกวันที่ 27 ของเดือน",
+    "balance_fund": 3100.0
+  },
+  {
+    "date": "2024-08-01",
+    "description": "เงินเก็บกองทุน",
+    "category": "Saving",
+    "amount": -5000.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "",
+    "balance_fund": 3100.0
+  },
+  {
+    "date": "2024-08-01",
+    "description": "กันเงินจ่ายค่าส่วนกลางทั้งปี",
+    "category": "Transfer Out",
+    "amount": -1550.0,
+    "paid_by": "Kept",
+    "notes": "โอนออกจาก Kept",
+    "balance_fund": 3100.0
+  },
+  {
+    "date": "2024-08-01",
+    "description": "กันเงินจ่ายค่าส่วนกลางทั้งปี",
+    "category": "Transfer In",
+    "amount": 1550.0,
+    "paid_by": "Transfer In",
+    "notes": "โอนเข้า Fund",
+    "balance_fund": 4650.0
+  },
+  {
+    "date": "2024-08-01",
+    "description": "จ่ายค่าส่วนกลางทั้งปี",
+    "category": "Expense-Yearly",
+    "amount": 0.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "ยังไม่ได้จ่ายในเดือนนี้",
+    "balance_fund": 4650.0
+  },
+  {
+    "date": "2024-09-01",
+    "description": "เงินฝาก",
+    "category": "Income",
+    "amount": 15000.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "ฝากทุกวันที่ 27 ของเดือน",
+    "balance_fund": 4650.0
+  },
+  {
+    "date": "2024-09-01",
+    "description": "เงินฝาก",
+    "category": "Income",
+    "amount": 15000.0,
+    "paid_by": "Mild Pranpreeya",
+    "notes": "ฝากทุกวันที่ 27 ของเดือน",
+    "balance_fund": 4650.0
+  },
+  {
+    "date": "2024-09-01",
+    "description": "ค่าไฟ",
+    "category": "Expense-Monthly",
+    "amount": -723.04,
+    "paid_by": "Boss Phatchara",
+    "notes": "",
+    "balance_fund": 4650.0
+  },
+  {
+    "date": "2024-09-01",
+    "description": "ค่าน้ำ",
+    "category": "Expense-Monthly",
+    "amount": -360.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "",
+    "balance_fund": 4650.0
+  },
+  {
+    "date": "2024-09-01",
+    "description": "ค่าเน็ต",
+    "category": "Expense-Monthly",
+    "amount": -695.5,
+    "paid_by": "Boss Phatchara",
+    "notes": "",
+    "balance_fund": 4650.0
+  },
+  {
+    "date": "2024-09-01",
+    "description": "ค่าน้ำมัน",
+    "category": "Expense-Monthly",
+    "amount": -2000.0,
+    "paid_by": "Mild Pranpreeya",
+    "notes": "",
+    "balance_fund": 4650.0
+  },
+  {
+    "date": "2024-09-01",
+    "description": "ค่าของใช้",
+    "category": "Expense-Monthly",
+    "amount": -1500.0,
+    "paid_by": "Mild Pranpreeya",
+    "notes": "",
+    "balance_fund": 4650.0
+  },
+  {
+    "date": "2024-09-01",
+    "description": "ค่าคอนโด",
+    "category": "Expense-Monthly",
+    "amount": -15000.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "จ่ายทุกวันที่ 27 ของเดือน",
+    "balance_fund": 4650.0
+  },
+  {
+    "date": "2024-09-01",
+    "description": "ค่าประกัน",
+    "category": "Expense-Monthly",
+    "amount": -600.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "จ่ายทุกวันที่ 27 ของเดือน",
+    "balance_fund": 4650.0
+  },
+  {
+    "date": "2024-09-01",
+    "description": "เงินเก็บกองทุน",
+    "category": "Saving",
+    "amount": -5000.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "",
+    "balance_fund": 4650.0
+  },
+  {
+    "date": "2024-09-01",
+    "description": "กันเงินจ่ายค่าส่วนกลางทั้งปี",
+    "category": "Transfer Out",
+    "amount": -1550.0,
+    "paid_by": "Kept",
+    "notes": "โอนออกจาก Kept",
+    "balance_fund": 4650.0
+  },
+  {
+    "date": "2024-09-01",
+    "description": "กันเงินจ่ายค่าส่วนกลางทั้งปี",
+    "category": "Transfer In",
+    "amount": 1550.0,
+    "paid_by": "Transfer In",
+    "notes": "โอนเข้า Fund",
+    "balance_fund": 6200.0
+  },
+  {
+    "date": "2024-09-01",
+    "description": "จ่ายค่าส่วนกลางทั้งปี",
+    "category": "Expense-Yearly",
+    "amount": 0.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "ยังไม่ได้จ่ายในเดือนนี้",
+    "balance_fund": 6200.0
+  },
+  {
+    "date": "2024-10-01",
+    "description": "เงินฝาก",
+    "category": "Income",
+    "amount": 15000.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "ฝากทุกวันที่ 27 ของเดือน",
+    "balance_fund": 6200.0
+  },
+  {
+    "date": "2024-10-01",
+    "description": "เงินฝาก",
+    "category": "Income",
+    "amount": 15000.0,
+    "paid_by": "Mild Pranpreeya",
+    "notes": "ฝากทุกวันที่ 27 ของเดือน",
+    "balance_fund": 6200.0
+  },
+  {
+    "date": "2024-10-01",
+    "description": "ค่าไฟ",
+    "category": "Expense-Monthly",
+    "amount": -555.01,
+    "paid_by": "Boss Phatchara",
+    "notes": "",
+    "balance_fund": 6200.0
+  },
+  {
+    "date": "2024-10-01",
+    "description": "ค่าน้ำ",
+    "category": "Expense-Monthly",
+    "amount": 0.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "ยังไม่ได้จ่ายในเดือนนี้",
+    "balance_fund": 6200.0
+  },
+  {
+    "date": "2024-10-01",
+    "description": "ค่าเน็ต",
+    "category": "Expense-Monthly",
+    "amount": -695.5,
+    "paid_by": "Boss Phatchara",
+    "notes": "",
+    "balance_fund": 6200.0
+  },
+  {
+    "date": "2024-10-01",
+    "description": "ค่าน้ำมัน",
+    "category": "Expense-Monthly",
+    "amount": -2000.0,
+    "paid_by": "Mild Pranpreeya",
+    "notes": "",
+    "balance_fund": 6200.0
+  },
+  {
+    "date": "2024-10-01",
+    "description": "ค่าของใช้",
+    "category": "Expense-Monthly",
+    "amount": -1500.0,
+    "paid_by": "Mild Pranpreeya",
+    "notes": "",
+    "balance_fund": 6200.0
+  },
+  {
+    "date": "2024-10-01",
+    "description": "ค่าคอนโด",
+    "category": "Expense-Monthly",
+    "amount": -15000.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "จ่ายทุกวันที่ 27 ของเดือน",
+    "balance_fund": 6200.0
+  },
+  {
+    "date": "2024-10-01",
+    "description": "ค่าประกัน",
+    "category": "Expense-Monthly",
+    "amount": -600.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "จ่ายทุกวันที่ 27 ของเดือน",
+    "balance_fund": 6200.0
+  },
+  {
+    "date": "2024-10-01",
+    "description": "เงินเก็บกองทุน",
+    "category": "Saving",
+    "amount": -5000.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "",
+    "balance_fund": 6200.0
+  },
+  {
+    "date": "2024-10-01",
+    "description": "กันเงินจ่ายค่าส่วนกลางทั้งปี",
+    "category": "Transfer Out",
+    "amount": -1550.0,
+    "paid_by": "Kept",
+    "notes": "โอนออกจาก Kept",
+    "balance_fund": 6200.0
+  },
+  {
+    "date": "2024-10-01",
+    "description": "กันเงินจ่ายค่าส่วนกลางทั้งปี",
+    "category": "Transfer In",
+    "amount": 1550.0,
+    "paid_by": "Transfer In",
+    "notes": "โอนเข้า Fund",
+    "balance_fund": 7750.0
+  },
+  {
+    "date": "2024-10-01",
+    "description": "จ่ายค่าส่วนกลางทั้งปี",
+    "category": "Expense-Yearly",
+    "amount": 0.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "ยังไม่ได้จ่ายในเดือนนี้",
+    "balance_fund": 7750.0
+  },
+  {
+    "date": "2024-11-01",
+    "description": "เงินฝาก",
+    "category": "Income",
+    "amount": 15000.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "ฝากทุกวันที่ 27 ของเดือน",
+    "balance_fund": 7750.0
+  },
+  {
+    "date": "2024-11-01",
+    "description": "เงินฝาก",
+    "category": "Income",
+    "amount": 15000.0,
+    "paid_by": "Mild Pranpreeya",
+    "notes": "ฝากทุกวันที่ 27 ของเดือน",
+    "balance_fund": 7750.0
+  },
+  {
+    "date": "2024-11-01",
+    "description": "ค่าไฟ",
+    "category": "Expense-Monthly",
+    "amount": -473.68,
+    "paid_by": "Boss Phatchara",
+    "notes": "",
+    "balance_fund": 7750.0
+  },
+  {
+    "date": "2024-11-01",
+    "description": "ค่าน้ำ",
+    "category": "Expense-Monthly",
+    "amount": 0.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "ยังไม่ได้จ่ายในเดือนนี้",
+    "balance_fund": 7750.0
+  },
+  {
+    "date": "2024-11-01",
+    "description": "ค่าเน็ต",
+    "category": "Expense-Monthly",
+    "amount": -695.5,
+    "paid_by": "Boss Phatchara",
+    "notes": "",
+    "balance_fund": 7750.0
+  },
+  {
+    "date": "2024-11-01",
+    "description": "ค่าน้ำมัน",
+    "category": "Expense-Monthly",
+    "amount": -2000.0,
+    "paid_by": "Mild Pranpreeya",
+    "notes": "",
+    "balance_fund": 7750.0
+  },
+  {
+    "date": "2024-11-01",
+    "description": "ค่าของใช้",
+    "category": "Expense-Monthly",
+    "amount": -1500.0,
+    "paid_by": "Mild Pranpreeya",
+    "notes": "",
+    "balance_fund": 7750.0
+  },
+  {
+    "date": "2024-11-01",
+    "description": "ค่าคอนโด",
+    "category": "Expense-Monthly",
+    "amount": -15000.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "จ่ายทุกวันที่ 27 ของเดือน",
+    "balance_fund": 7750.0
+  },
+  {
+    "date": "2024-11-01",
+    "description": "ค่าประกัน",
+    "category": "Expense-Monthly",
+    "amount": -600.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "จ่ายทุกวันที่ 27 ของเดือน",
+    "balance_fund": 7750.0
+  },
+  {
+    "date": "2024-11-01",
+    "description": "เงินเก็บกองทุน",
+    "category": "Saving",
+    "amount": -3000.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "",
+    "balance_fund": 7750.0
+  },
+  {
+    "date": "2024-11-01",
+    "description": "กันเงินจ่ายค่าส่วนกลางทั้งปี",
+    "category": "Transfer Out",
+    "amount": -1550.0,
+    "paid_by": "Kept",
+    "notes": "โอนออกจาก Kept",
+    "balance_fund": 7750.0
+  },
+  {
+    "date": "2024-11-01",
+    "description": "กันเงินจ่ายค่าส่วนกลางทั้งปี",
+    "category": "Transfer In",
+    "amount": 1550.0,
+    "paid_by": "Transfer In",
+    "notes": "โอนเข้า Fund",
+    "balance_fund": 9300.0
+  },
+  {
+    "date": "2024-11-01",
+    "description": "จ่ายค่าส่วนกลางทั้งปี",
+    "category": "Expense-Yearly",
+    "amount": 0.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "ยังไม่ได้จ่ายในเดือนนี้",
+    "balance_fund": 9300.0
+  },
+  {
+    "date": "2024-12-01",
+    "description": "เงินฝาก",
+    "category": "Income",
+    "amount": 15000.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "ฝากทุกวันที่ 27 ของเดือน",
+    "balance_fund": 9300.0
+  },
+  {
+    "date": "2024-12-01",
+    "description": "เงินฝาก",
+    "category": "Income",
+    "amount": 15000.0,
+    "paid_by": "Mild Pranpreeya",
+    "notes": "ฝากทุกวันที่ 27 ของเดือน",
+    "balance_fund": 9300.0
+  },
+  {
+    "date": "2024-12-01",
+    "description": "ค่าไฟ",
+    "category": "Expense-Monthly",
+    "amount": -555.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "",
+    "balance_fund": 9300.0
+  },
+  {
+    "date": "2024-12-01",
+    "description": "ค่าน้ำ",
+    "category": "Expense-Monthly",
+    "amount": 0.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "",
+    "balance_fund": 9300.0
+  },
+  {
+    "date": "2024-12-01",
+    "description": "ค่าเน็ต",
+    "category": "Expense-Monthly",
+    "amount": -695.5,
+    "paid_by": "Boss Phatchara",
+    "notes": "",
+    "balance_fund": 9300.0
+  },
+  {
+    "date": "2024-12-01",
+    "description": "ค่าน้ำมัน",
+    "category": "Expense-Monthly",
+    "amount": -2000.0,
+    "paid_by": "Mild Pranpreeya",
+    "notes": "",
+    "balance_fund": 9300.0
+  },
+  {
+    "date": "2024-12-01",
+    "description": "ค่าของใช้",
+    "category": "Expense-Monthly",
+    "amount": -1500.0,
+    "paid_by": "Mild Pranpreeya",
+    "notes": "",
+    "balance_fund": 9300.0
+  },
+  {
+    "date": "2024-12-01",
+    "description": "ค่าคอนโด",
+    "category": "Expense-Monthly",
+    "amount": -15000.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "จ่ายทุกวันที่ 27 ของเดือน",
+    "balance_fund": 9300.0
+  },
+  {
+    "date": "2024-12-01",
+    "description": "ค่าประกัน",
+    "category": "Expense-Monthly",
+    "amount": -600.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "จ่ายทุกวันที่ 27 ของเดือน",
+    "balance_fund": 9300.0
+  },
+  {
+    "date": "2024-12-01",
+    "description": "เงินเก็บกองทุน",
+    "category": "Saving",
+    "amount": -5000.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "",
+    "balance_fund": 9300.0
+  },
+  {
+    "date": "2024-12-01",
+    "description": "กันเงินจ่ายค่าส่วนกลางทั้งปี",
+    "category": "Transfer Out",
+    "amount": -1550.0,
+    "paid_by": "Kept",
+    "notes": "โอนออกจาก Kept",
+    "balance_fund": 9300.0
+  },
+  {
+    "date": "2024-12-01",
+    "description": "กันเงินจ่ายค่าส่วนกลางทั้งปี",
+    "category": "Transfer In",
+    "amount": 1550.0,
+    "paid_by": "Transfer In",
+    "notes": "โอนเข้า Fund",
+    "balance_fund": 10850.0
+  },
+  {
+    "date": "2024-12-01",
+    "description": "จ่ายค่าส่วนกลางทั้งปี",
+    "category": "Expense-Yearly",
+    "amount": 0.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "ยังไม่ได้จ่ายในเดือนนี้",
+    "balance_fund": 10850.0
+  },
+  {
+    "date": "2025-01-01",
+    "description": "เงินฝาก",
+    "category": "Income",
+    "amount": 15000.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "ฝากทุกวันที่ 27 ของเดือน",
+    "balance_fund": 10850.0
+  },
+  {
+    "date": "2025-01-01",
+    "description": "เงินฝากเพิ่มเติม",
+    "category": "Income",
+    "amount": 15000.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "",
+    "balance_fund": 10850.0
+  },
+  {
+    "date": "2025-01-01",
+    "description": "เงินฝาก",
+    "category": "Income",
+    "amount": 15000.0,
+    "paid_by": "Mild Pranpreeya",
+    "notes": "ฝากทุกวันที่ 27 ของเดือน",
+    "balance_fund": 10850.0
+  },
+  {
+    "date": "2025-01-01",
+    "description": "ค่าไฟ",
+    "category": "Expense-Monthly",
+    "amount": -262.33,
+    "paid_by": "Boss Phatchara",
+    "notes": "",
+    "balance_fund": 10850.0
+  },
+  {
+    "date": "2025-01-01",
+    "description": "ค่าน้ำ",
+    "category": "Expense-Monthly",
+    "amount": -380.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "",
+    "balance_fund": 10850.0
+  },
+  {
+    "date": "2025-01-01",
+    "description": "ค่าเน็ต",
+    "category": "Expense-Monthly",
+    "amount": -695.5,
+    "paid_by": "Boss Phatchara",
+    "notes": "",
+    "balance_fund": 10850.0
+  },
+  {
+    "date": "2025-01-01",
+    "description": "ค่าน้ำมัน",
+    "category": "Expense-Monthly",
+    "amount": -2000.0,
+    "paid_by": "Mild Pranpreeya",
+    "notes": "",
+    "balance_fund": 10850.0
+  },
+  {
+    "date": "2025-01-01",
+    "description": "ค่าของใช้",
+    "category": "Expense-Monthly",
+    "amount": -1500.0,
+    "paid_by": "Mild Pranpreeya",
+    "notes": "",
+    "balance_fund": 10850.0
+  },
+  {
+    "date": "2025-01-01",
+    "description": "ค่าคอนโด",
+    "category": "Expense-Monthly",
+    "amount": -15000.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "จ่ายทุกวันที่ 27 ของเดือน",
+    "balance_fund": 10850.0
+  },
+  {
+    "date": "2025-01-01",
+    "description": "ค่าประกัน",
+    "category": "Expense-Monthly",
+    "amount": -600.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "จ่ายทุกวันที่ 27 ของเดือน",
+    "balance_fund": 10850.0
+  },
+  {
+    "date": "2025-01-01",
+    "description": "เงินเก็บกองทุน",
+    "category": "Saving",
+    "amount": -5000.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "",
+    "balance_fund": 10850.0
+  },
+  {
+    "date": "2025-01-01",
+    "description": "กันเงินจ่ายค่าส่วนกลางทั้งปี",
+    "category": "Transfer Out",
+    "amount": -1550.0,
+    "paid_by": "Kept",
+    "notes": "โอนออกจาก Kept",
+    "balance_fund": 10850.0
+  },
+  {
+    "date": "2025-01-01",
+    "description": "กันเงินจ่ายค่าส่วนกลางทั้งปี",
+    "category": "Transfer In",
+    "amount": 1550.0,
+    "paid_by": "Transfer In",
+    "notes": "โอนเข้า Fund",
+    "balance_fund": 12400.0
+  },
+  {
+    "date": "2025-01-01",
+    "description": "จ่ายค่าส่วนกลางทั้งปี",
+    "category": "Expense-Yearly",
+    "amount": -9529.79,
+    "paid_by": "Boss Phatchara",
+    "notes": "",
+    "balance_fund": 2870.21
+  },
+  {
+    "date": "2025-01-01",
+    "description": "จ่ายค่าส่วนกลางทั้งปี",
+    "category": "Expense-Yearly",
+    "amount": -154.13,
+    "paid_by": "Boss Phatchara",
+    "notes": "ค่ารักษามิเตอร์",
+    "balance_fund": 2716.08
+  },
+  {
+    "date": "2025-02-01",
+    "description": "เงินฝาก",
+    "category": "Income",
+    "amount": 15000.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "ฝากทุกวันที่ 27 ของเดือน",
+    "balance_fund": 2716.08
+  },
+  {
+    "date": "2025-02-01",
+    "description": "เงินฝาก",
+    "category": "Income",
+    "amount": 15000.0,
+    "paid_by": "Mild Pranpreeya",
+    "notes": "ฝากทุกวันที่ 27 ของเดือน",
+    "balance_fund": 2716.08
+  },
+  {
+    "date": "2025-02-01",
+    "description": "เงินฝากเพิ่มเติม",
+    "category": "Income",
+    "amount": 11205.0,
+    "paid_by": "Mild Pranpreeya",
+    "notes": "",
+    "balance_fund": 2716.08
+  },
+  {
+    "date": "2025-02-01",
+    "description": "ค่าไฟ",
+    "category": "Expense-Monthly",
+    "amount": -478.97,
+    "paid_by": "Boss Phatchara",
+    "notes": "",
+    "balance_fund": 2716.08
+  },
+  {
+    "date": "2025-02-01",
+    "description": "ค่าน้ำ",
+    "category": "Expense-Monthly",
+    "amount": 0.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "",
+    "balance_fund": 2716.08
+  },
+  {
+    "date": "2025-02-01",
+    "description": "ค่าเน็ต",
+    "category": "Expense-Monthly",
+    "amount": -695.5,
+    "paid_by": "Boss Phatchara",
+    "notes": "",
+    "balance_fund": 2716.08
+  },
+  {
+    "date": "2025-02-01",
+    "description": "ค่าน้ำมัน",
+    "category": "Expense-Monthly",
+    "amount": -2000.0,
+    "paid_by": "Mild Pranpreeya",
+    "notes": "",
+    "balance_fund": 2716.08
+  },
+  {
+    "date": "2025-02-01",
+    "description": "ค่าของใช้",
+    "category": "Expense-Monthly",
+    "amount": -1500.0,
+    "paid_by": "Mild Pranpreeya",
+    "notes": "",
+    "balance_fund": 2716.08
+  },
+  {
+    "date": "2025-02-01",
+    "description": "ค่าคอนโด",
+    "category": "Expense-Monthly",
+    "amount": -11100.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "จ่ายทุกวันที่ 27 ของเดือน",
+    "balance_fund": 2716.08
+  },
+  {
+    "date": "2025-02-01",
+    "description": "ค่าประกัน",
+    "category": "Expense-Monthly",
+    "amount": -600.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "จ่ายทุกวันที่ 27 ของเดือน",
+    "balance_fund": 2716.08
+  },
+  {
+    "date": "2025-02-01",
+    "description": "เงินเก็บกองทุน",
+    "category": "Saving",
+    "amount": 0.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "",
+    "balance_fund": 2716.08
+  },
+  {
+    "date": "2025-02-01",
+    "description": "ค่าของใช้",
+    "category": "Expense-Monthly",
+    "amount": -685.0,
+    "paid_by": "Mild Pranpreeya",
+    "notes": "หม้อข้าว",
+    "balance_fund": 2716.08
+  },
+  {
+    "date": "2025-02-01",
+    "description": "ค่าของใช้",
+    "category": "Expense-Monthly",
+    "amount": -1557.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "เครื่องดูดฝุ่น + ไส้กรองน้ำ",
+    "balance_fund": 2716.08
+  },
+  {
+    "date": "2025-02-01",
+    "description": "กันเงินจ่ายค่าส่วนกลางทั้งปี",
+    "category": "Transfer Out",
+    "amount": -1550.0,
+    "paid_by": "Kept",
+    "notes": "โอนออกจาก Kept",
+    "balance_fund": 2716.08
+  },
+  {
+    "date": "2025-02-01",
+    "description": "กันเงินจ่ายค่าส่วนกลางทั้งปี",
+    "category": "Transfer In",
+    "amount": 1550.0,
+    "paid_by": "Transfer In",
+    "notes": "โอนเข้า Fund",
+    "balance_fund": 4266.08
+  },
+  {
+    "date": "2025-02-01",
+    "description": "จ่ายค่าส่วนกลางทั้งปี",
+    "category": "Expense-Yearly",
+    "amount": 0.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "ยังไม่ได้จ่ายในเดือนนี้",
+    "balance_fund": 4266.08
+  },
+  {
+    "date": "2025-03-01",
+    "description": "เงินฝาก",
+    "category": "Income",
+    "amount": 15000.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "ฝากทุกวันที่ 27 ของเดือน",
+    "balance_fund": 4266.08
+  },
+  {
+    "date": "2025-03-01",
+    "description": "เงินฝาก",
+    "category": "Income",
+    "amount": 15000.0,
+    "paid_by": "Mild Pranpreeya",
+    "notes": "ฝากทุกวันที่ 27 ของเดือน",
+    "balance_fund": 4266.08
+  },
+  {
+    "date": "2025-03-01",
+    "description": "ค่าไฟ",
+    "category": "Expense-Monthly",
+    "amount": -642.48,
+    "paid_by": "Boss Phatchara",
+    "notes": "",
+    "balance_fund": 4266.08
+  },
+  {
+    "date": "2025-03-01",
+    "description": "ค่าน้ำ",
+    "category": "Expense-Monthly",
+    "amount": 0.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "",
+    "balance_fund": 4266.08
+  },
+  {
+    "date": "2025-03-01",
+    "description": "ค่าเน็ต",
+    "category": "Expense-Monthly",
+    "amount": -695.5,
+    "paid_by": "Boss Phatchara",
+    "notes": "",
+    "balance_fund": 4266.08
+  },
+  {
+    "date": "2025-03-01",
+    "description": "ค่าน้ำมัน",
+    "category": "Expense-Monthly",
+    "amount": -500.0,
+    "paid_by": "Mild Pranpreeya",
+    "notes": "ค่าน้ำมันประจำเดือน -- ปรับลดลง",
+    "balance_fund": 4266.08
+  },
+  {
+    "date": "2025-03-01",
+    "description": "ค่าของใช้",
+    "category": "Expense-Monthly",
+    "amount": -2000.0,
+    "paid_by": "Mild Pranpreeya",
+    "notes": "ค่าของใช้ทั่วไป --ปรับเพิ่มขึ้น",
+    "balance_fund": 4266.08
+  },
+  {
+    "date": "2025-03-01",
+    "description": "ค่าของใช้",
+    "category": "Expense-Monthly",
+    "amount": -3206.0,
+    "paid_by": "Mild Pranpreeya",
+    "notes": "ค่าตู้ + ชั้นวางหนังสือ",
+    "balance_fund": 4266.08
+  },
+  {
+    "date": "2025-03-01",
+    "description": "ค่าของใช้",
+    "category": "Expense-Monthly",
+    "amount": -678.0,
+    "paid_by": "Mild Pranpreeya",
+    "notes": "ค่าไส้กรอง",
+    "balance_fund": 4266.08
+  },
+  {
+    "date": "2025-03-01",
+    "description": "ค่าคอนโด",
+    "category": "Expense-Monthly",
+    "amount": -18900.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "จ่ายทุกวันที่ 27 ของเดือน",
+    "balance_fund": 4266.08
+  },
+  {
+    "date": "2025-03-01",
+    "description": "ค่าประกัน",
+    "category": "Expense-Monthly",
+    "amount": -600.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "จ่ายทุกวันที่ 27 ของเดือน",
+    "balance_fund": 4266.08
+  },
+  {
+    "date": "2025-03-01",
+    "description": "เงินเก็บกองทุน",
+    "category": "Saving",
+    "amount": -10000.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "รวมยอดของเดือน กพ 2025 ด้วย",
+    "balance_fund": 4266.08
+  },
+  {
+    "date": "2025-03-01",
+    "description": "กันเงินจ่ายค่าส่วนกลางทั้งปี",
+    "category": "Transfer Out",
+    "amount": -1550.0,
+    "paid_by": "Kept",
+    "notes": "โอนออกจาก Kept",
+    "balance_fund": 4266.08
+  },
+  {
+    "date": "2025-03-01",
+    "description": "กันเงินจ่ายค่าส่วนกลางทั้งปี",
+    "category": "Transfer In",
+    "amount": 1550.0,
+    "paid_by": "Transfer In",
+    "notes": "โอนเข้า Fund",
+    "balance_fund": 5816.08
+  },
+  {
+    "date": "2025-03-01",
+    "description": "จ่ายค่าส่วนกลางทั้งปี",
+    "category": "Expense-Yearly",
+    "amount": 0.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "ยังไม่ได้จ่ายในเดือนนี้",
+    "balance_fund": 5816.08
+  },
+  {
+    "date": "2025-04-01",
+    "description": "เงินฝาก",
+    "category": "Income",
+    "amount": 15000.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "ฝากทุกวันที่ 27 ของเดือน",
+    "balance_fund": 5816.08
+  },
+  {
+    "date": "2025-04-01",
+    "description": "เงินฝาก",
+    "category": "Income",
+    "amount": 15000.0,
+    "paid_by": "Mild Pranpreeya",
+    "notes": "ฝากทุกวันที่ 27 ของเดือน",
+    "balance_fund": 5816.08
+  },
+  {
+    "date": "2025-04-01",
+    "description": "ค่าไฟ",
+    "category": "Expense-Monthly",
+    "amount": -1024.16,
+    "paid_by": "Boss Phatchara",
+    "notes": "",
+    "balance_fund": 5816.08
+  },
+  {
+    "date": "2025-04-01",
+    "description": "ค่าน้ำ",
+    "category": "Expense-Monthly",
+    "amount": -380.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "",
+    "balance_fund": 5816.08
+  },
+  {
+    "date": "2025-04-01",
+    "description": "ค่าเน็ต",
+    "category": "Expense-Monthly",
+    "amount": -695.5,
+    "paid_by": "Boss Phatchara",
+    "notes": "",
+    "balance_fund": 5816.08
+  },
+  {
+    "date": "2025-04-01",
+    "description": "ค่าน้ำมัน",
+    "category": "Expense-Monthly",
+    "amount": -500.0,
+    "paid_by": "Mild Pranpreeya",
+    "notes": "ค่าน้ำมันประจำเดือน -- ปรับลดลง",
+    "balance_fund": 5816.08
+  },
+  {
+    "date": "2025-04-01",
+    "description": "ค่าของใช้",
+    "category": "Expense-Monthly",
+    "amount": -1829.0,
+    "paid_by": "Mild Pranpreeya",
+    "notes": "",
+    "balance_fund": 5816.08
+  },
+  {
+    "date": "2025-04-01",
+    "description": "ค่าของใช้",
+    "category": "Expense-Monthly",
+    "amount": -1291.23,
+    "paid_by": "Mild Pranpreeya",
+    "notes": "ค่ากรมที่ดิน, ค่ากล่องข้าว, ค่าเบี้ยประกันอาคาร",
+    "balance_fund": 5816.08
+  },
+  {
+    "date": "2025-04-01",
+    "description": "ค่าคอนโด",
+    "category": "Expense-Monthly",
+    "amount": -15000.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "จ่ายทุกวันที่ 27 ของเดือน",
+    "balance_fund": 5816.08
+  },
+  {
+    "date": "2025-04-01",
+    "description": "ค่าประกัน",
+    "category": "Expense-Monthly",
+    "amount": -600.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "จ่ายทุกวันที่ 27 ของเดือน",
+    "balance_fund": 5816.08
+  },
+  {
+    "date": "2025-04-01",
+    "description": "เงินเก็บกองทุน",
+    "category": "Saving",
+    "amount": 0.0,
+    "paid_by": "Kept",
+    "notes": "ยังไม่ได้โอน 27/04/2025",
+    "balance_fund": 5816.08
+  },
+  {
+    "date": "2025-04-01",
+    "description": "กันเงินจ่ายค่าส่วนกลางทั้งปี",
+    "category": "Transfer Out",
+    "amount": -1550.0,
+    "paid_by": "Kept",
+    "notes": "",
+    "balance_fund": 5816.08
+  },
+  {
+    "date": "2025-04-01",
+    "description": "กันเงินจ่ายค่าส่วนกลางทั้งปี",
+    "category": "Transfer In",
+    "amount": 1550.0,
+    "paid_by": "Transfer In",
+    "notes": "",
+    "balance_fund": 7366.08
+  },
+  {
+    "date": "2025-04-01",
+    "description": "จ่ายค่าส่วนกลางทั้งปี",
+    "category": "Expense-Yearly",
+    "amount": 0.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "",
+    "balance_fund": 7366.08
+  },
+  {
+    "date": "2025-05-01",
+    "description": "เงินฝาก",
+    "category": "Income",
+    "amount": 15000.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "ฝากทุกวันที่ 27 ของเดือน",
+    "balance_fund": 7366.08
+  },
+  {
+    "date": "2025-05-01",
+    "description": "เงินฝาก",
+    "category": "Income",
+    "amount": 15000.0,
+    "paid_by": "Mild Pranpreeya",
+    "notes": "ฝากทุกวันที่ 27 ของเดือน",
+    "balance_fund": 7366.08
+  },
+  {
+    "date": "2025-05-01",
+    "description": "ค่าไฟ",
+    "category": "Expense-Monthly",
+    "amount": -1033.28,
+    "paid_by": "Boss Phatchara",
+    "notes": "",
+    "balance_fund": 7366.08
+  },
+  {
+    "date": "2025-05-01",
+    "description": "ค่าน้ำ",
+    "category": "Expense-Monthly",
+    "amount": 0.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "",
+    "balance_fund": 7366.08
+  },
+  {
+    "date": "2025-05-01",
+    "description": "ค่าเน็ต",
+    "category": "Expense-Monthly",
+    "amount": -675.5,
+    "paid_by": "Boss Phatchara",
+    "notes": "",
+    "balance_fund": 7366.08
+  },
+  {
+    "date": "2025-05-01",
+    "description": "ค่าน้ำมัน",
+    "category": "Expense-Monthly",
+    "amount": -500.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "",
+    "balance_fund": 7366.08
+  },
+  {
+    "date": "2025-05-01",
+    "description": "ค่าของใช้",
+    "category": "Expense-Monthly",
+    "amount": -1500.0,
+    "paid_by": "Mild Pranpreeya",
+    "notes": "",
+    "balance_fund": 7366.08
+  },
+  {
+    "date": "2025-05-01",
+    "description": "ค่าคอนโด",
+    "category": "Expense-Monthly",
+    "amount": -15000.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "จ่ายทุกวันที่ 27 ของเดือน",
+    "balance_fund": 7366.08
+  },
+  {
+    "date": "2025-05-01",
+    "description": "ค่าประกัน",
+    "category": "Expense-Monthly",
+    "amount": -600.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "จ่ายทุกวันที่ 27 ของเดือน",
+    "balance_fund": 7366.08
+  },
+  {
+    "date": "2025-05-01",
+    "description": "เงินเก็บกองทุน",
+    "category": "Saving",
+    "amount": 0.0,
+    "paid_by": "Kept",
+    "notes": "",
+    "balance_fund": 7366.08
+  },
+  {
+    "date": "2025-05-01",
+    "description": "กันเงินจ่ายค่าส่วนกลางทั้งปี",
+    "category": "Transfer Out",
+    "amount": -1550.0,
+    "paid_by": "Kept",
+    "notes": "",
+    "balance_fund": 7366.08
+  },
+  {
+    "date": "2025-05-01",
+    "description": "กันเงินจ่ายค่าส่วนกลางทั้งปี",
+    "category": "Transfer In",
+    "amount": 1550.0,
+    "paid_by": "Transfer In",
+    "notes": "",
+    "balance_fund": 8916.08
+  },
+  {
+    "date": "2025-05-01",
+    "description": "จ่ายค่าส่วนกลางทั้งปี",
+    "category": "Expense-Yearly",
+    "amount": 0.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "",
+    "balance_fund": 8916.08
+  },
+  {
+    "date": "2025-06-01",
+    "description": "เงินฝาก",
+    "category": "Income",
+    "amount": 15000.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "ฝากทุกวันที่ 27 ของเดือน",
+    "balance_fund": 8916.08
+  },
+  {
+    "date": "2025-06-01",
+    "description": "เงินฝาก",
+    "category": "Income",
+    "amount": 15000.0,
+    "paid_by": "Mild Pranpreeya",
+    "notes": "ฝากทุกวันที่ 27 ของเดือน",
+    "balance_fund": 8916.08
+  },
+  {
+    "date": "2025-06-01",
+    "description": "ค่าไฟ",
+    "category": "Expense-Monthly",
+    "amount": -740.12,
+    "paid_by": "Boss Phatchara",
+    "notes": "",
+    "balance_fund": 8916.08
+  },
+  {
+    "date": "2025-06-01",
+    "description": "ค่าน้ำ",
+    "category": "Expense-Monthly",
+    "amount": 0.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "",
+    "balance_fund": 8916.08
+  },
+  {
+    "date": "2025-06-01",
+    "description": "ค่าเน็ต",
+    "category": "Expense-Monthly",
+    "amount": -695.5,
+    "paid_by": "Boss Phatchara",
+    "notes": "",
+    "balance_fund": 8916.08
+  },
+  {
+    "date": "2025-06-01",
+    "description": "ค่าน้ำมัน",
+    "category": "Expense-Monthly",
+    "amount": -500.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "",
+    "balance_fund": 8916.08
+  },
+  {
+    "date": "2025-06-01",
+    "description": "ค่าของใช้",
+    "category": "Expense-Monthly",
+    "amount": -1500.0,
+    "paid_by": "Mild Pranpreeya",
+    "notes": "",
+    "balance_fund": 8916.08
+  },
+  {
+    "date": "2025-06-01",
+    "description": "ค่าคอนโด",
+    "category": "Expense-Monthly",
+    "amount": -15000.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "จ่ายทุกวันที่ 27 ของเดือน",
+    "balance_fund": 8916.08
+  },
+  {
+    "date": "2025-06-01",
+    "description": "ค่าประกัน",
+    "category": "Expense-Monthly",
+    "amount": -600.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "จ่ายทุกวันที่ 27 ของเดือน",
+    "balance_fund": 8916.08
+  },
+  {
+    "date": "2025-06-01",
+    "description": "เงินเก็บกองทุน",
+    "category": "Saving",
+    "amount": 0.0,
+    "paid_by": "Kept",
+    "notes": "",
+    "balance_fund": 8916.08
+  },
+  {
+    "date": "2025-06-01",
+    "description": "กันเงินจ่ายค่าส่วนกลางทั้งปี",
+    "category": "Transfer Out",
+    "amount": -1550.0,
+    "paid_by": "Kept",
+    "notes": "",
+    "balance_fund": 8916.08
+  },
+  {
+    "date": "2025-06-01",
+    "description": "กันเงินจ่ายค่าส่วนกลางทั้งปี",
+    "category": "Transfer In",
+    "amount": 1550.0,
+    "paid_by": "Transfer In",
+    "notes": "",
+    "balance_fund": 10466.08
+  },
+  {
+    "date": "2025-06-01",
+    "description": "จ่ายค่าส่วนกลางทั้งปี",
+    "category": "Expense-Yearly",
+    "amount": 0.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "",
+    "balance_fund": 10466.08
+  },
+  {
+    "date": "2025-07-01",
+    "description": "เงินฝาก",
+    "category": "Income",
+    "amount": 15000.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "ฝากทุกวันที่ 27 ของเดือน",
+    "balance_fund": 10466.08
+  },
+  {
+    "date": "2025-07-01",
+    "description": "เงินฝาก",
+    "category": "Income",
+    "amount": 15000.0,
+    "paid_by": "Mild Pranpreeya",
+    "notes": "ฝากทุกวันที่ 27 ของเดือน",
+    "balance_fund": 10466.08
+  },
+  {
+    "date": "2025-07-01",
+    "description": "ค่าไฟ",
+    "category": "Expense-Monthly",
+    "amount": -796.86,
+    "paid_by": "Boss Phatchara",
+    "notes": "",
+    "balance_fund": 10466.08
+  },
+  {
+    "date": "2025-07-01",
+    "description": "ค่าน้ำ",
+    "category": "Expense-Monthly",
+    "amount": -700.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "ค่าน้ำ 3 เดือน + ค่ารถ 40 บาท",
+    "balance_fund": 10466.08
+  },
+  {
+    "date": "2025-07-01",
+    "description": "ค่าเน็ต",
+    "category": "Expense-Monthly",
+    "amount": -695.5,
+    "paid_by": "Boss Phatchara",
+    "notes": "",
+    "balance_fund": 10466.08
+  },
+  {
+    "date": "2025-07-01",
+    "description": "ค่าน้ำมัน",
+    "category": "Expense-Monthly",
+    "amount": -500.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "",
+    "balance_fund": 10466.08
+  },
+  {
+    "date": "2025-07-01",
+    "description": "ค่าของใช้",
+    "category": "Expense-Monthly",
+    "amount": -2000.0,
+    "paid_by": "Mild Pranpreeya",
+    "notes": "เพิ่มค่าใช้จ่ายของลูก 500 บาท",
+    "balance_fund": 10466.08
+  },
+  {
+    "date": "2025-07-01",
+    "description": "ค่าคอนโด",
+    "category": "Expense-Monthly",
+    "amount": -15000.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "จ่ายทุกวันที่ 27 ของเดือน",
+    "balance_fund": 10466.08
+  },
+  {
+    "date": "2025-07-01",
+    "description": "ค่าประกัน",
+    "category": "Expense-Monthly",
+    "amount": -600.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "จ่ายทุกวันที่ 27 ของเดือน",
+    "balance_fund": 10466.08
+  },
+  {
+    "date": "2025-07-01",
+    "description": "เงินเก็บกองทุน",
+    "category": "Saving",
+    "amount": 0.0,
+    "paid_by": "Kept",
+    "notes": "",
+    "balance_fund": 10466.08
+  },
+  {
+    "date": "2025-07-01",
+    "description": "กันเงินจ่ายค่าส่วนกลางทั้งปี",
+    "category": "Transfer Out",
+    "amount": -1550.0,
+    "paid_by": "Kept",
+    "notes": "",
+    "balance_fund": 10466.08
+  },
+  {
+    "date": "2025-07-01",
+    "description": "กันเงินจ่ายค่าส่วนกลางทั้งปี",
+    "category": "Transfer In",
+    "amount": 1550.0,
+    "paid_by": "Transfer In",
+    "notes": "",
+    "balance_fund": 12016.08
+  },
+  {
+    "date": "2025-07-01",
+    "description": "จ่ายค่าส่วนกลางทั้งปี",
+    "category": "Expense-Yearly",
+    "amount": 0.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "",
+    "balance_fund": 12016.08
+  },
+  {
+    "date": "2025-08-01",
+    "description": "เงินฝาก",
+    "category": "Income",
+    "amount": 15000.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "ฝากทุกวันที่ 27 ของเดือน",
+    "balance_fund": 12016.08
+  },
+  {
+    "date": "2025-08-01",
+    "description": "เงินฝาก",
+    "category": "Income",
+    "amount": 15000.0,
+    "paid_by": "Mild Pranpreeya",
+    "notes": "ฝากทุกวันที่ 27 ของเดือน",
+    "balance_fund": 12016.08
+  },
+  {
+    "date": "2025-08-01",
+    "description": "ค่าไฟ",
+    "category": "Expense-Monthly",
+    "amount": -820.51,
+    "paid_by": "Boss Phatchara",
+    "notes": "",
+    "balance_fund": 12016.08
+  },
+  {
+    "date": "2025-08-01",
+    "description": "ค่าน้ำ",
+    "category": "Expense-Monthly",
+    "amount": 0.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "",
+    "balance_fund": 12016.08
+  },
+  {
+    "date": "2025-08-01",
+    "description": "ค่าเน็ต",
+    "category": "Expense-Monthly",
+    "amount": -695.5,
+    "paid_by": "Boss Phatchara",
+    "notes": "",
+    "balance_fund": 12016.08
+  },
+  {
+    "date": "2025-08-01",
+    "description": "ค่าน้ำมัน",
+    "category": "Expense-Monthly",
+    "amount": -500.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "",
+    "balance_fund": 12016.08
+  },
+  {
+    "date": "2025-08-01",
+    "description": "ค่าของใช้",
+    "category": "Expense-Monthly",
+    "amount": -2000.0,
+    "paid_by": "Mild Pranpreeya",
+    "notes": "",
+    "balance_fund": 12016.08
+  },
+  {
+    "date": "2025-08-01",
+    "description": "ค่าคอนโด",
+    "category": "Expense-Monthly",
+    "amount": -15000.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "จ่ายทุกวันที่ 27 ของเดือน",
+    "balance_fund": 12016.08
+  },
+  {
+    "date": "2025-08-01",
+    "description": "ค่าประกัน",
+    "category": "Expense-Monthly",
+    "amount": -600.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "จ่ายทุกวันที่ 27 ของเดือน",
+    "balance_fund": 12016.08
+  },
+  {
+    "date": "2025-08-01",
+    "description": "เงินเก็บกองทุน",
+    "category": "Saving",
+    "amount": 0.0,
+    "paid_by": "Kept",
+    "notes": "",
+    "balance_fund": 12016.08
+  },
+  {
+    "date": "2025-08-01",
+    "description": "กันเงินจ่ายค่าส่วนกลางทั้งปี",
+    "category": "Transfer Out",
+    "amount": -1550.0,
+    "paid_by": "Kept",
+    "notes": "",
+    "balance_fund": 12016.08
+  },
+  {
+    "date": "2025-08-01",
+    "description": "กันเงินจ่ายค่าส่วนกลางทั้งปี",
+    "category": "Transfer In",
+    "amount": 1550.0,
+    "paid_by": "Transfer In",
+    "notes": "",
+    "balance_fund": 13566.08
+  },
+  {
+    "date": "2025-08-01",
+    "description": "จ่ายค่าส่วนกลางทั้งปี",
+    "category": "Expense-Yearly",
+    "amount": 0.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "",
+    "balance_fund": 13566.08
+  },
+  {
+    "date": "2025-09-01",
+    "description": "เงินฝาก",
+    "category": "Income",
+    "amount": 15000.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "ฝากทุกวันที่ 27 ของเดือน",
+    "balance_fund": 13566.08
+  },
+  {
+    "date": "2025-09-01",
+    "description": "เงินฝาก",
+    "category": "Income",
+    "amount": 15000.0,
+    "paid_by": "Mild Pranpreeya",
+    "notes": "ฝากทุกวันที่ 27 ของเดือน",
+    "balance_fund": 13566.08
+  },
+  {
+    "date": "2025-09-01",
+    "description": "ค่าไฟ",
+    "category": "Expense-Monthly",
+    "amount": -554.72,
+    "paid_by": "Boss Phatchara",
+    "notes": "",
+    "balance_fund": 13566.08
+  },
+  {
+    "date": "2025-09-01",
+    "description": "ค่าน้ำ",
+    "category": "Expense-Monthly",
+    "amount": 0.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "",
+    "balance_fund": 13566.08
+  },
+  {
+    "date": "2025-09-01",
+    "description": "ค่าเน็ต",
+    "category": "Expense-Monthly",
+    "amount": -695.5,
+    "paid_by": "Boss Phatchara",
+    "notes": "",
+    "balance_fund": 13566.08
+  },
+  {
+    "date": "2025-09-01",
+    "description": "ค่าน้ำมัน",
+    "category": "Expense-Monthly",
+    "amount": -500.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "",
+    "balance_fund": 13566.08
+  },
+  {
+    "date": "2025-09-01",
+    "description": "ค่าของใช้",
+    "category": "Expense-Monthly",
+    "amount": -2000.0,
+    "paid_by": "Mild Pranpreeya",
+    "notes": "",
+    "balance_fund": 13566.08
+  },
+  {
+    "date": "2025-09-01",
+    "description": "ค่าคอนโด",
+    "category": "Expense-Monthly",
+    "amount": -15000.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "จ่ายทุกวันที่ 27 ของเดือน",
+    "balance_fund": 13566.08
+  },
+  {
+    "date": "2025-09-01",
+    "description": "ค่าประกัน",
+    "category": "Expense-Monthly",
+    "amount": -600.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "จ่ายทุกวันที่ 27 ของเดือน",
+    "balance_fund": 13566.08
+  },
+  {
+    "date": "2025-09-01",
+    "description": "เงินเก็บกองทุน",
+    "category": "Saving",
+    "amount": 0.0,
+    "paid_by": "Kept",
+    "notes": "",
+    "balance_fund": 13566.08
+  },
+  {
+    "date": "2025-09-01",
+    "description": "กันเงินจ่ายค่าส่วนกลางทั้งปี",
+    "category": "Transfer Out",
+    "amount": -1550.0,
+    "paid_by": "Kept",
+    "notes": "",
+    "balance_fund": 13566.08
+  },
+  {
+    "date": "2025-09-01",
+    "description": "กันเงินจ่ายค่าส่วนกลางทั้งปี",
+    "category": "Transfer In",
+    "amount": 1550.0,
+    "paid_by": "Transfer In",
+    "notes": "",
+    "balance_fund": 15116.08
+  },
+  {
+    "date": "2025-09-01",
+    "description": "จ่ายค่าส่วนกลางทั้งปี",
+    "category": "Expense-Yearly",
+    "amount": 0.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "",
+    "balance_fund": 15116.08
+  },
+  {
+    "date": "2025-10-01",
+    "description": "เงินฝาก",
+    "category": "Income",
+    "amount": 15000.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "ฝากทุกวันที่ 27 ของเดือน",
+    "balance_fund": 15116.08
+  },
+  {
+    "date": "2025-10-01",
+    "description": "เงินฝาก",
+    "category": "Income",
+    "amount": 15000.0,
+    "paid_by": "Mild Pranpreeya",
+    "notes": "ฝากทุกวันที่ 27 ของเดือน",
+    "balance_fund": 15116.08
+  },
+  {
+    "date": "2025-10-01",
+    "description": "ค่าไฟ",
+    "category": "Expense-Monthly",
+    "amount": -615.11,
+    "paid_by": "Boss Phatchara",
+    "notes": "",
+    "balance_fund": 15116.08
+  },
+  {
+    "date": "2025-10-01",
+    "description": "ค่าน้ำ",
+    "category": "Expense-Monthly",
+    "amount": -500.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "",
+    "balance_fund": 15116.08
+  },
+  {
+    "date": "2025-10-01",
+    "description": "ค่าเน็ต",
+    "category": "Expense-Monthly",
+    "amount": -695.5,
+    "paid_by": "Boss Phatchara",
+    "notes": "",
+    "balance_fund": 15116.08
+  },
+  {
+    "date": "2025-10-01",
+    "description": "ค่าน้ำมัน",
+    "category": "Expense-Monthly",
+    "amount": -500.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "",
+    "balance_fund": 15116.08
+  },
+  {
+    "date": "2025-10-01",
+    "description": "ค่าของใช้",
+    "category": "Expense-Monthly",
+    "amount": -2000.0,
+    "paid_by": "Mild Pranpreeya",
+    "notes": "",
+    "balance_fund": 15116.08
+  },
+  {
+    "date": "2025-10-01",
+    "description": "ค่าคอนโด",
+    "category": "Expense-Monthly",
+    "amount": -15000.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "จ่ายทุกวันที่ 27 ของเดือน",
+    "balance_fund": 15116.08
+  },
+  {
+    "date": "2025-10-01",
+    "description": "ค่าประกัน",
+    "category": "Expense-Monthly",
+    "amount": -600.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "จ่ายทุกวันที่ 27 ของเดือน",
+    "balance_fund": 15116.08
+  },
+  {
+    "date": "2025-10-01",
+    "description": "เงินเก็บกองทุน",
+    "category": "Saving",
+    "amount": 0.0,
+    "paid_by": "Kept",
+    "notes": "",
+    "balance_fund": 15116.08
+  },
+  {
+    "date": "2025-10-01",
+    "description": "กันเงินจ่ายค่าส่วนกลางทั้งปี",
+    "category": "Transfer Out",
+    "amount": -1550.0,
+    "paid_by": "Kept",
+    "notes": "",
+    "balance_fund": 15116.08
+  },
+  {
+    "date": "2025-10-01",
+    "description": "กันเงินจ่ายค่าส่วนกลางทั้งปี",
+    "category": "Transfer In",
+    "amount": 1550.0,
+    "paid_by": "Transfer In",
+    "notes": "",
+    "balance_fund": 16666.08
+  },
+  {
+    "date": "2025-10-01",
+    "description": "จ่ายค่าส่วนกลางทั้งปี",
+    "category": "Expense-Yearly",
+    "amount": 0.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "",
+    "balance_fund": 16666.08
+  },
+  {
+    "date": "2025-11-01",
+    "description": "เงินฝาก",
+    "category": "Income",
+    "amount": 15000.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "ฝากทุกวันที่ 27 ของเดือน",
+    "balance_fund": 16666.08
+  },
+  {
+    "date": "2025-11-01",
+    "description": "เงินฝาก",
+    "category": "Income",
+    "amount": 15000.0,
+    "paid_by": "Mild Pranpreeya",
+    "notes": "ฝากทุกวันที่ 27 ของเดือน",
+    "balance_fund": 16666.08
+  },
+  {
+    "date": "2025-11-01",
+    "description": "ค่าไฟ",
+    "category": "Expense-Monthly",
+    "amount": -540.15,
+    "paid_by": "Boss Phatchara",
+    "notes": "",
+    "balance_fund": 16666.08
+  },
+  {
+    "date": "2025-11-01",
+    "description": "ค่ารถตู้คอนโด",
+    "category": "Expense-Monthly",
+    "amount": -120.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "แทนค่าน้ำ",
+    "balance_fund": 16666.08
+  },
+  {
+    "date": "2025-11-01",
+    "description": "ค่าเน็ต",
+    "category": "Expense-Monthly",
+    "amount": -695.5,
+    "paid_by": "Boss Phatchara",
+    "notes": "",
+    "balance_fund": 16666.08
+  },
+  {
+    "date": "2025-11-01",
+    "description": "ค่าน้ำมัน",
+    "category": "Expense-Monthly",
+    "amount": -500.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "",
+    "balance_fund": 16666.08
+  },
+  {
+    "date": "2025-11-01",
+    "description": "ค่าของใช้",
+    "category": "Expense-Monthly",
+    "amount": -2000.0,
+    "paid_by": "Mild Pranpreeya",
+    "notes": "",
+    "balance_fund": 16666.08
+  },
+  {
+    "date": "2025-11-01",
+    "description": "ค่าคอนโด",
+    "category": "Expense-Monthly",
+    "amount": -15000.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "จ่ายทุกวันที่ 27 ของเดือน",
+    "balance_fund": 16666.08
+  },
+  {
+    "date": "2025-11-01",
+    "description": "ค่าประกัน",
+    "category": "Expense-Monthly",
+    "amount": -600.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "จ่ายทุกวันที่ 27 ของเดือน",
+    "balance_fund": 16666.08
+  },
+  {
+    "date": "2025-11-01",
+    "description": "เงินเก็บกองทุน",
+    "category": "Saving",
+    "amount": 0.0,
+    "paid_by": "Kept",
+    "notes": "",
+    "balance_fund": 16666.08
+  },
+  {
+    "date": "2025-11-01",
+    "description": "กันเงินจ่ายค่าส่วนกลางทั้งปี",
+    "category": "Transfer Out",
+    "amount": -1550.0,
+    "paid_by": "Kept",
+    "notes": "",
+    "balance_fund": 16666.08
+  },
+  {
+    "date": "2025-11-01",
+    "description": "กันเงินจ่ายค่าส่วนกลางทั้งปี",
+    "category": "Transfer In",
+    "amount": 1550.0,
+    "paid_by": "Transfer In",
+    "notes": "",
+    "balance_fund": 18216.08
+  },
+  {
+    "date": "2025-11-01",
+    "description": "จ่ายค่าส่วนกลางทั้งปี",
+    "category": "Expense-Yearly",
+    "amount": 0.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "",
+    "balance_fund": 18216.08
+  },
+  {
+    "date": "2025-12-01",
+    "description": "เงินฝาก",
+    "category": "Income",
+    "amount": 15000.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "ฝากทุกวันที่ 27 ของเดือน",
+    "balance_fund": 18216.08
+  },
+  {
+    "date": "2025-12-01",
+    "description": "เงินฝาก",
+    "category": "Income",
+    "amount": 15000.0,
+    "paid_by": "Mild Pranpreeya",
+    "notes": "ฝากทุกวันที่ 27 ของเดือน",
+    "balance_fund": 18216.08
+  },
+  {
+    "date": "2025-12-01",
+    "description": "ค่าไฟ",
+    "category": "Expense-Monthly",
+    "amount": -438.11,
+    "paid_by": "Boss Phatchara",
+    "notes": "",
+    "balance_fund": 18216.08
+  },
+  {
+    "date": "2025-12-01",
+    "description": "ค่ารถตู้คอนโด",
+    "category": "Expense-Monthly",
+    "amount": -120.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "",
+    "balance_fund": 18216.08
+  },
+  {
+    "date": "2025-12-01",
+    "description": "ค่าเน็ต",
+    "category": "Expense-Monthly",
+    "amount": -695.5,
+    "paid_by": "Boss Phatchara",
+    "notes": "",
+    "balance_fund": 18216.08
+  },
+  {
+    "date": "2025-12-01",
+    "description": "ค่าน้ำมัน",
+    "category": "Expense-Monthly",
+    "amount": -500.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "",
+    "balance_fund": 18216.08
+  },
+  {
+    "date": "2025-12-01",
+    "description": "ค่าของใช้",
+    "category": "Expense-Monthly",
+    "amount": -1500.0,
+    "paid_by": "Mild Pranpreeya",
+    "notes": "",
+    "balance_fund": 18216.08
+  },
+  {
+    "date": "2025-12-01",
+    "description": "ค่าคอนโด",
+    "category": "Expense-Monthly",
+    "amount": -15000.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "จ่ายทุกวันที่ 27 ของเดือน",
+    "balance_fund": 18216.08
+  },
+  {
+    "date": "2025-12-01",
+    "description": "ค่าประกัน",
+    "category": "Expense-Monthly",
+    "amount": -600.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "จ่ายทุกวันที่ 27 ของเดือน",
+    "balance_fund": 18216.08
+  },
+  {
+    "date": "2025-12-01",
+    "description": "เงินเก็บกองทุน",
+    "category": "Saving",
+    "amount": 0.0,
+    "paid_by": "Kept",
+    "notes": "",
+    "balance_fund": 18216.08
+  },
+  {
+    "date": "2025-12-01",
+    "description": "กันเงินจ่ายค่าส่วนกลางทั้งปี",
+    "category": "Transfer Out",
+    "amount": -1550.0,
+    "paid_by": "Kept",
+    "notes": "",
+    "balance_fund": 18216.08
+  },
+  {
+    "date": "2025-12-01",
+    "description": "กันเงินจ่ายค่าส่วนกลางทั้งปี",
+    "category": "Transfer In",
+    "amount": 1550.0,
+    "paid_by": "Transfer In",
+    "notes": "",
+    "balance_fund": 19766.08
+  },
+  {
+    "date": "2025-12-01",
+    "description": "จ่ายค่าส่วนกลางทั้งปี",
+    "category": "Expense-Yearly",
+    "amount": 0.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "",
+    "balance_fund": 19766.08
+  },
+  {
+    "date": "2026-01-01",
+    "description": "เงินฝาก",
+    "category": "Income",
+    "amount": 15000.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "ฝากทุกวันที่ 27 ของเดือน",
+    "balance_fund": 19766.08
+  },
+  {
+    "date": "2026-01-01",
+    "description": "เงินฝาก",
+    "category": "Income",
+    "amount": 15000.0,
+    "paid_by": "Mild Pranpreeya",
+    "notes": "ฝากทุกวันที่ 27 ของเดือน",
+    "balance_fund": 19766.08
+  },
+  {
+    "date": "2026-01-01",
+    "description": "ค่าไฟ",
+    "category": "Expense-Monthly",
+    "amount": -445.17,
+    "paid_by": "Boss Phatchara",
+    "notes": "",
+    "balance_fund": 19766.08
+  },
+  {
+    "date": "2026-01-01",
+    "description": "ค่ารถตู้คอนโด",
+    "category": "Expense-Monthly",
+    "amount": -80.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "",
+    "balance_fund": 19766.08
+  },
+  {
+    "date": "2026-01-01",
+    "description": "ค่าเน็ต",
+    "category": "Expense-Monthly",
+    "amount": -695.5,
+    "paid_by": "Boss Phatchara",
+    "notes": "",
+    "balance_fund": 19766.08
+  },
+  {
+    "date": "2026-01-01",
+    "description": "ค่าน้ำ",
+    "category": "Expense-Monthly",
+    "amount": -460.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "",
+    "balance_fund": 19766.08
+  },
+  {
+    "date": "2026-01-01",
+    "description": "ค่าน้ำมัน",
+    "category": "Expense-Monthly",
+    "amount": -500.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "",
+    "balance_fund": 19766.08
+  },
+  {
+    "date": "2026-01-01",
+    "description": "ค่าของใช้",
+    "category": "Expense-Monthly",
+    "amount": -1500.0,
+    "paid_by": "Mild Pranpreeya",
+    "notes": "",
+    "balance_fund": 19766.08
+  },
+  {
+    "date": "2026-01-01",
+    "description": "ค่าคอนโด",
+    "category": "Expense-Monthly",
+    "amount": -15000.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "จ่ายทุกวันที่ 27 ของเดือน",
+    "balance_fund": 19766.08
+  },
+  {
+    "date": "2026-01-01",
+    "description": "ค่าประกัน",
+    "category": "Expense-Monthly",
+    "amount": -600.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "จ่ายทุกวันที่ 27 ของเดือน",
+    "balance_fund": 19766.08
+  },
+  {
+    "date": "2026-01-01",
+    "description": "เงินเก็บกองทุน",
+    "category": "Saving",
+    "amount": 0.0,
+    "paid_by": "Kept",
+    "notes": "",
+    "balance_fund": 19766.08
+  },
+  {
+    "date": "2026-01-01",
+    "description": "กันเงินจ่ายค่าส่วนกลางทั้งปี",
+    "category": "Transfer Out",
+    "amount": -1550.0,
+    "paid_by": "Kept",
+    "notes": "",
+    "balance_fund": 19766.08
+  },
+  {
+    "date": "2026-01-01",
+    "description": "กันเงินจ่ายค่าส่วนกลางทั้งปี",
+    "category": "Transfer In",
+    "amount": 1550.0,
+    "paid_by": "Transfer In",
+    "notes": "",
+    "balance_fund": 21316.08
+  },
+  {
+    "date": "2026-01-01",
+    "description": "จ่ายค่าส่วนกลางทั้งปี",
+    "category": "Expense-Yearly",
+    "amount": -18852.6,
+    "paid_by": "Boss Phatchara",
+    "notes": "",
+    "balance_fund": 2463.48
+  },
+  {
+    "date": "2026-02-01",
+    "description": "เงินฝาก",
+    "category": "Income",
+    "amount": 15000.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "ฝากทุกวันที่ 27 ของเดือน",
+    "balance_fund": 2463.48
+  },
+  {
+    "date": "2026-02-01",
+    "description": "เงินฝาก",
+    "category": "Income",
+    "amount": 15000.0,
+    "paid_by": "Mild Pranpreeya",
+    "notes": "ฝากทุกวันที่ 27 ของเดือน",
+    "balance_fund": 2463.48
+  },
+  {
+    "date": "2026-02-01",
+    "description": "ค่าไฟ",
+    "category": "Expense-Monthly",
+    "amount": -563.31,
+    "paid_by": "Boss Phatchara",
+    "notes": "",
+    "balance_fund": 2463.48
+  },
+  {
+    "date": "2026-02-01",
+    "description": "ค่ารถตู้คอนโด",
+    "category": "Expense-Monthly",
+    "amount": -80.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "",
+    "balance_fund": 2463.48
+  },
+  {
+    "date": "2026-02-01",
+    "description": "ค่าเน็ต",
+    "category": "Expense-Monthly",
+    "amount": -695.5,
+    "paid_by": "Boss Phatchara",
+    "notes": "",
+    "balance_fund": 2463.48
+  },
+  {
+    "date": "2026-02-01",
+    "description": "ค่าน้ำ",
+    "category": "Expense-Monthly",
+    "amount": 0.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "",
+    "balance_fund": 2463.48
+  },
+  {
+    "date": "2026-02-01",
+    "description": "ค่าน้ำมัน",
+    "category": "Expense-Monthly",
+    "amount": -500.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "",
+    "balance_fund": 2463.48
+  },
+  {
+    "date": "2026-02-01",
+    "description": "ค่าของใช้",
+    "category": "Expense-Monthly",
+    "amount": -1500.0,
+    "paid_by": "Mild Pranpreeya",
+    "notes": "",
+    "balance_fund": 2463.48
+  },
+  {
+    "date": "2026-02-01",
+    "description": "ค่าคอนโด",
+    "category": "Expense-Monthly",
+    "amount": -15000.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "จ่ายทุกวันที่ 27 ของเดือน",
+    "balance_fund": 2463.48
+  },
+  {
+    "date": "2026-02-01",
+    "description": "ค่าประกัน",
+    "category": "Expense-Monthly",
+    "amount": -600.0,
+    "paid_by": "Boss Phatchara",
+    "notes": "จ่ายทุกวันที่ 27 ของเดือน",
+    "balance_fund": 2463.48
+  },
+  {
+    "date": "2026-02-01",
+    "description": "เงินเก็บกองทุน",
+    "category": "Saving",
+    "amount": 0.0,
+    "paid_by": "Kept",
+    "notes": "",
+    "balance_fund": 2463.48
+  },
+  {
+    "date": "2026-02-01",
+    "description": "กันเงินจ่ายค่าส่วนกลางทั้งปี",
+    "category": "Transfer Out",
+    "amount": -1550.0,
+    "paid_by": "Kept",
+    "notes": "",
+    "balance_fund": 2463.48
+  },
+  {
+    "date": "2026-02-01",
+    "description": "กันเงินจ่ายค่าส่วนกลางทั้งปี",
+    "category": "Transfer In",
+    "amount": 1550.0,
+    "paid_by": "Transfer In",
+    "notes": "",
+    "balance_fund": 4013.48
+  },
+  {
+    "date": "2026-02-01",
+    "description": "จ่ายค่าส่วนกลางทั้งปี",
+    "category": "Expense-Yearly",
+    "amount": -514.13,
+    "paid_by": "Boss Phatchara",
+    "notes": "",
+    "balance_fund": 3499.35
+  }
+];
+
+// ===== STATE =====
+const SHEET_ID = "1NbKy2bVXndjH80mo2PRJ6tgssSS9dW5MmS1uNBs-6IY";
+// ✅ EXACT published URL from "Publish to the web" — gid=1083181738 = Transaction1 sheet
+const PUBLISHED_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQSJ2XNdVxIgnwL0S2nJgEMFWzIJcdNzlDyhqoYTsQESDmZJBkl7MOf5SxiHmAnICfSysFQsAw57oLN/pub?gid=1083181738&single=true&output=csv";
+const SHEET_URLS = [
+  PUBLISHED_CSV_URL,  // primary — exact published URL, no auth needed
+  "https://docs.google.com/spreadsheets/d/"+SHEET_ID+"/gviz/tq?tqx=out:csv&sheet=Transaction1",
+  "https://docs.google.com/spreadsheets/d/"+SHEET_ID+"/gviz/tq?tqx=out:csv",
+];
+const CORS_PROXY = "https://corsproxy.io/?";
+let LIVE_DATA = null;
+let usingSheets = false;
+
+// ===== UTILS =====
+const fmt = n => new Intl.NumberFormat("th-TH",{maximumFractionDigits:0}).format(n);
+const COLORS = ["#7c3aed","#06b6d4","#10b981","#f59e0b","#ef4444","#8b5cf6","#0891b2","#059669","#d97706","#dc2626","#a78bfa","#22d3ee","#34d399","#fbbf24","#f87171","#c084fc","#67e8f9"];
+const MN = ["ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."];
+const today = new Date();
+
+// ===== INIT =====
+document.getElementById("ed").value = today.toISOString().split("T")[0];
+document.getElementById("upd").textContent = today.toLocaleDateString("th-TH",{year:"numeric",month:"long",day:"numeric"});
+document.getElementById("fDate").textContent = "อัปเดต: "+today.toLocaleDateString("th-TH");
+
+// ===== CSV PARSER =====
+function parseCSV(text) {
+  const lines = text.trim().split("\n");
+  const headers = lines[0].split(",").map(h=>h.replace(/"/g,"").trim());
+  const rows = [];
+  for(let i=1;i<lines.length;i++){
+    const vals = [];
+    let cur="", inQ=false;
+    for(let c of lines[i]){
+      if(c==='"'){ inQ=!inQ; }
+      else if(c===","&&!inQ){ vals.push(cur.trim()); cur=""; }
+      else cur+=c;
+    }
+    vals.push(cur.trim());
+    if(vals.length<4) continue;
+    const obj={};
+    headers.forEach((h,j)=>obj[h]=vals[j]||"");
+    rows.push(obj);
+  }
+  return rows;
+}
+
+function parseAmount(s){
+  if(!s||!s.trim()) return 0;
+  try{ return parseFloat(s.replace(/,/g,"").replace(/"/g,"")); }
+  catch(e){ return 0; }
+}
+
+function parseDate(s){
+  s=s.trim();
+  const fmts=[
+    [/^(\d{2})-([A-Za-z]{3})-(\d{4})$/,(m)=>{ const ms={"jan":0,"feb":1,"mar":2,"apr":3,"may":4,"jun":5,"jul":6,"aug":7,"sep":8,"oct":9,"nov":10,"dec":11}; return new Date(parseInt(m[3]),ms[m[2].toLowerCase()],parseInt(m[1])); }],
+    [/^(\d{4})-(\d{2})-(\d{2})$/,(m)=>new Date(parseInt(m[1]),parseInt(m[2])-1,parseInt(m[3]))]
+  ];
+  for(const [re,fn] of fmts){ const m=s.match(re); if(m){ const d=fn(m); if(!isNaN(d)) return d; } }
+  const d=new Date(s); return isNaN(d)?null:d;
+}
+
+function processRawCSV(rows){
+  const out=[];
+  for(const row of rows){
+    const d=parseDate(row["Date"]||"");
+    if(!d) continue;
+    out.push({
+      date:d.toISOString().split("T")[0],
+      description:(row["Description"]||"").trim(),
+      category:(row["Category"]||"").trim(),
+      amount:parseAmount(row["Amount"]),
+      paid_by:(row["Paid By"]||"").trim(),
+      notes:(row["Notes"]||"").trim(),
+      balance_fund:parseAmount(row["Balance Fund"])
+    });
+  }
+  return out;
+}
+
+// ===== GOOGLE SHEETS LOAD (multiple strategies for file:// compatibility) =====
+
+// Helper: convert gviz cell value to string matching CSV column format
+function cellVal(cell){
+  if(!cell || cell.v===null || cell.v===undefined) return '';
+  // gviz returns dates as Date(Y,M,D) — convert to DD-Mon-YYYY to match CSV format
+  if(typeof cell.v==='string' && cell.v.startsWith('Date(')){
+    const m=cell.v.match(/Date\((\d+),(\d+),(\d+)\)/);
+    if(m){
+      const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      return ('0'+m[3]).slice(-2)+'-'+months[parseInt(m[2])]+'-'+m[1];
+    }
+  }
+  // For numbers, use the formatted string if available (preserves comma formatting)
+  if(typeof cell.v==='number') return cell.f ? String(cell.f) : String(cell.v);
+  // Default: prefer formatted value, fall back to raw
+  return (cell.f!==undefined && cell.f!==null) ? String(cell.f) : String(cell.v);
+}
+
+// Parse gviz JSON table into array of row objects
+function parseGvizTable(resp){
+  // Google sometimes wraps in google.visualization.Query.setResponse(...)
+  // When using responseHandler, it calls our function directly
+  const table = resp && resp.table;
+  if(!table||!table.cols) throw new Error('ไม่พบ table ใน gviz response');
+  const cols = table.cols.map(c => (c.label||c.id||'').trim());
+  console.log('[gviz] columns:', cols);
+  const rows = (table.rows||[]).map(row => {
+    if(!row.c) return null;
+    const obj = {};
+    cols.forEach((col,i) => { obj[col] = row.c[i] ? cellVal(row.c[i]) : ''; });
+    return obj;
+  }).filter(Boolean);
+  console.log('[gviz] parsed rows:', rows.length);
+  const processed = processRawCSV(rows);
+  if(processed.length===0) throw new Error('parse ได้ 0 แถว — columns: '+cols.join(', '));
+  return processed;
+}
+
+// ---- Strategy 1: JSONP via gviz (bypasses CORS — works from file://) ----
+function tryJSONP(sheetParam){
+  return new Promise((resolve, reject) => {
+    const cbName = 'gvCB_' + Math.random().toString(36).slice(2);
+    const scriptId = 'gvSc_' + Date.now();
+    const timer = setTimeout(() => { cleanup(); reject(new Error('JSONP timeout 12s')); }, 12000);
+
+    function cleanup(){
+      clearTimeout(timer);
+      delete window[cbName];
+      const s = document.getElementById(scriptId);
+      if(s) s.remove();
+    }
+
+    // Register global callback
+    window[cbName] = function(resp){
+      cleanup();
+      try { resolve(parseGvizTable(resp)); }
+      catch(e){ reject(e); }
+    };
+
+    // Also register as google.visualization.Query.setResponse in case Google ignores responseHandler
+    if(!window.google) window.google = {};
+    if(!window.google.visualization) window.google.visualization = {};
+    if(!window.google.visualization.Query) window.google.visualization.Query = {};
+    window.google.visualization.Query.setResponse = function(resp){
+      cleanup();
+      try { resolve(parseGvizTable(resp)); }
+      catch(e){ reject(e); }
+    };
+
+    const script = document.createElement('script');
+    script.id = scriptId;
+    script.onerror = () => { cleanup(); reject(new Error('Script load error')); };
+    // Use responseHandler (correct gviz JSONP parameter)
+    const sheetQ = sheetParam ? '&sheet='+encodeURIComponent(sheetParam) : '';
+    script.src = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID +
+                 '/gviz/tq?tqx=responseHandler:' + cbName + sheetQ + '&headers=1';
+    console.log('[JSONP] loading:', script.src);
+    document.head.appendChild(script);
+  });
+}
+
+// ---- Strategy 2: Fetch published CSV (works from http:// or if CORS allows) ----
+async function tryPublishedCSV(){
+  console.log('[CSV] fetching:', PUBLISHED_CSV_URL);
+  const res = await fetch(PUBLISHED_CSV_URL, {credentials:'omit', redirect:'follow'});
+  if(!res.ok) throw new Error('HTTP ' + res.status);
+  const text = await res.text();
+  if(text.length < 50 || text.trimStart().startsWith('<')) throw new Error('Got HTML page, not CSV');
+  const rows = parseCSV(text);
+  const processed = processRawCSV(rows);
+  if(processed.length === 0) throw new Error('CSV parse returned 0 rows');
+  console.log('[CSV] parsed:', processed.length, 'rows');
+  return processed;
+}
+
+// ---- Strategy 3: Fetch gviz JSON directly (works from http://) ----
+async function tryGvizFetch(){
+  const url = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID +
+              '/gviz/tq?tqx=out:json&headers=1';
+  console.log('[gviz-fetch] trying:', url);
+  const res = await fetch(url, {credentials:'omit'});
+  if(!res.ok) throw new Error('HTTP ' + res.status);
+  let text = await res.text();
+  // Strip JSONP wrapper: google.visualization.Query.setResponse({...})
+  // or /*O_o*/ prefix
+  text = text.replace(/^[^(]*\(/, '').replace(/\);?\s*$/, '');
+  const resp = JSON.parse(text);
+  return parseGvizTable(resp);
+}
+
+// ---- Main loader: tries all strategies in order ----
+async function loadFromSheets(){
+  const btn = document.getElementById('gsBtn');
+  btn.innerHTML = '<span class="spinner"></span> กำลังโหลด...';
+  btn.disabled = true;
+  showGSPanel('loading','กำลังเชื่อมต่อ Google Sheets...','กรุณารอสักครู่');
+
+  const strategies = [
+    { name:'JSONP (Transaction1)', fn:()=>tryJSONP('Transaction1') },
+    { name:'JSONP (first sheet)',  fn:()=>tryJSONP('') },
+    { name:'Published CSV',       fn:()=>tryPublishedCSV() },
+    { name:'gviz Fetch',          fn:()=>tryGvizFetch() },
+  ];
+
+  let data = null, method = '', lastErr = '';
+
+  for(const s of strategies){
+    try{
+      showGSPanel('loading', 'กำลังลอง: ' + s.name + '...', 'Strategy ' + (strategies.indexOf(s)+1) + '/' + strategies.length);
+      console.log('[loadFromSheets] trying:', s.name);
+      data = await s.fn();
+      method = s.name;
+      console.log('[loadFromSheets] SUCCESS via', s.name, '—', data.length, 'rows');
+      break;
+    }catch(e){
+      console.warn('[loadFromSheets]', s.name, 'failed:', e.message);
+      lastErr = s.name + ': ' + e.message;
+    }
+  }
+
+  if(data && data.length > 0){
+    LIVE_DATA = data;
+    usingSheets = true;
+    document.getElementById('srcLabel').textContent = '✅ Google Sheets (Live — ' + method + ')';
+    document.getElementById('srcLabel').style.color = '#4ade80';
+    document.getElementById('srcFoot').textContent = 'ข้อมูล: Google Sheets Live (' + method + ') — ' + data.length + ' รายการ';
+    showGSPanel('ok',
+      '✅ เชื่อมต่อสำเร็จ — ' + data.length + ' รายการ (' + method + ')',
+      'โหลดล่าสุด: ' + new Date().toLocaleTimeString('th-TH') + ' | กด อัปเดต เพื่อดึงข้อมูลใหม่');
+    const h = document.getElementById('launchHelper');
+    if(h) h.style.display = 'none';
+    go();
+  } else {
+    usingSheets = false;
+    console.error('[loadFromSheets] ALL strategies failed. Last error:', lastErr);
+    showGSPanel('error',
+      '❌ โหลดไม่สำเร็จ — ' + lastErr,
+      '💡 วิธีแก้: ดับเบิลคลิก "เปิด Dashboard.command" เพื่อเปิดผ่าน local server | หรือ Login Google ใน browser แล้วกด Refresh');
+    const h = document.getElementById('launchHelper');
+    if(h) h.style.display = 'block';
+    showInfo('ℹ️ Dashboard ใช้ข้อมูล Embedded (' + EMBEDDED.length + ' รายการ) — เปิดผ่าน local server เพื่อเชื่อมต่อ Sheets');
+  }
+
+  btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 1.5L18.5 9H13V3.5zM6 20V4h5v7h7v9H6z"/></svg> 🔄 โหลดจาก Google Sheets';
+  btn.disabled = false;
+}
+
+function showGSPanel(type,title,sub){
+  const w=document.getElementById("gsPanelWrap");
+  const cls=type==="error"?" error":"";
+  const dot=type==="loading"?' class="gs-dot loading"':type==="error"?' class="gs-dot err"':' class="gs-dot"';
+  w.innerHTML=`<div class="gs-panel${cls}"><span${dot}></span><div class="gs-info"><div class="title">${title}</div><div class="sub">${sub}</div></div></div>`;
+}
+
+function showInfo(msg){
+  const el=document.getElementById("infoBar");
+  el.textContent=msg; el.classList.add("show");
+}
+
+// ===== DATE RANGE =====
+function setR(t){
+  const y=today.getFullYear();
+  let s,e;
+  if(t==="ytd"){s=y+"-01-01";e=today.toISOString().split("T")[0];}
+  else if(t==="all"){s="2024-01-01";e=today.toISOString().split("T")[0];}
+  else{s=t+"-01-01";e=t+"-12-31";}
+  document.getElementById("sd").value=s;
+  document.getElementById("ed").value=e;
+  go();
+}
+
+function getData(){ return usingSheets&&LIVE_DATA?LIVE_DATA:EMBEDDED; }
+
+function getFiltered(){
+  const s=new Date(document.getElementById("sd").value);
+  const e=new Date(document.getElementById("ed").value);
+  e.setHours(23,59,59);
+  return getData().filter(t=>{ const d=new Date(t.date); return d>=s&&d<=e; });
+}
+
+// ===== COMPUTATIONS =====
+function compKPI(d){
+  let inc=0,exp=0,sav=0,fund=0,tOut=0;
+  d.forEach(t=>{
+    if(t.category==="Income") inc+=t.amount;
+    else if(t.category==="Expense-Monthly"||t.category==="Expense-Yearly") exp+=Math.abs(t.amount);
+    else if(t.category==="Saving") sav+=Math.abs(t.amount);
+    else if(t.category==="Transfer Out") tOut+=Math.abs(t.amount);
+    if(t.balance_fund>0) fund=t.balance_fund;
+  });
+  return{inc,exp,sav,fund,cash:inc-exp-sav-tOut};
+}
+
+function getMonthly(d){
+  const m={};
+  d.forEach(t=>{
+    const k=t.date.substring(0,7);
+    if(!m[k]) m[k]={inc:0,exp:0,sav:0,fund:0};
+    if(t.category==="Income") m[k].inc+=t.amount;
+    else if(t.category==="Expense-Monthly"||t.category==="Expense-Yearly") m[k].exp+=Math.abs(t.amount);
+    else if(t.category==="Saving") m[k].sav+=Math.abs(t.amount);
+    if(t.balance_fund>0) m[k].fund=t.balance_fund;
+  });
+  return m;
+}
+
+function getBreakdown(d){
+  const m={};
+  d.forEach(t=>{
+    if((t.category==="Expense-Monthly"||t.category==="Expense-Yearly")&&t.amount<0){
+      if(!m[t.description]) m[t.description]=0;
+      m[t.description]+=Math.abs(t.amount);
+    }
+  });
+  return Object.entries(m).sort((a,b)=>b[1]-a[1]);
+}
+
+function mLabel(l){ const[y,mo]=l.split("-"); return MN[parseInt(mo)-1]+" "+(parseInt(y)+543); }
+function mSh(l){ const[y,mo]=l.split("-"); return MN[parseInt(mo)-1]+"'"+String(parseInt(y)+543).slice(-2); }
+
+// ===== TRACKER =====
+function updateTracker(){
+  const start=new Date("2024-06-01"),target=new Date("2027-06-01"),now=new Date();
+  const pct=Math.min(100,Math.max(0,(now-start)/(target-start)*100));
+  const allData=getData();
+  const cr=allData.filter(t=>t.description==="ค่าคอนโด"&&t.category==="Expense-Monthly");
+  const tp=cr.reduce((s,t)=>s+Math.abs(t.amount),0);
+  const mp=cr.length;
+  document.getElementById("tP").textContent="฿"+fmt(tp);
+  document.getElementById("tM").textContent=mp;
+  document.getElementById("tY").textContent=(mp/12).toFixed(1);
+  document.getElementById("tPct").textContent=pct.toFixed(1)+"%";
+  document.getElementById("pb").style.width=pct+"%";
+  document.getElementById("ppct").textContent=pct.toFixed(1)+"%";
+  const diffD=Math.max(0,Math.floor((target-now)/86400000));
+  const diffM=Math.max(0,Math.floor(diffD/30.44));
+  const diffW=Math.max(0,Math.floor(diffD/7));
+  document.getElementById("cdD").textContent=diffD;
+  document.getElementById("cdM").textContent=diffM;
+  document.getElementById("cdW").textContent=diffW;
+  const banner=document.getElementById("alertBanner");
+  banner.classList.remove("show");
+  let stHTML="";
+  if(diffD<=0){
+    stHTML='<span class="badge bg">✅ ครบกำหนด!</span>';
+    banner.style.cssText="background:#064e3b;border:1px solid #34d399;color:#34d399;";
+    banner.innerHTML="✅ ครบ 3 ปีแล้ว! ถึงเวลา Retention คอนโด — ดำเนินการได้เลย";
+    banner.classList.add("show");
+  } else if(diffD<=7){
+    stHTML='<span class="badge br">🚨 &lt;1wk</span>';
+    banner.style.cssText="background:#450a0a;border:1px solid #ef4444;color:#fca5a5;";
+    banner.innerHTML="🚨 <strong>เหลืออีก "+diffD+" วัน!</strong> ถึงเวลา Retention คอนโด — ดำเนินการด่วนที่สุด!";
+    banner.classList.add("show");
+  } else if(diffD<=14){
+    stHTML='<span class="badge br">⚠️ &lt;2wk</span>';
+    banner.style.cssText="background:#450a0a;border:1px solid #f87171;color:#fca5a5;";
+    banner.innerHTML="⚠️ <strong>เหลือ "+diffD+" วัน ("+diffW+" สัปดาห์)</strong> เตรียม Retention ได้เลย";
+    banner.classList.add("show");
+  } else if(diffD<=30){
+    stHTML='<span class="badge by">🔔 &lt;1mo</span>';
+    banner.style.cssText="background:#451a03;border:1px solid #f59e0b;color:#fcd34d;";
+    banner.innerHTML="🔔 <strong>เหลืออีก "+diffD+" วัน</strong> — เตรียมเอกสาร Retention คอนโดไว้ได้เลย";
+    banner.classList.add("show");
+  } else {
+    stHTML='<span class="badge bg">🟢 ปกติ</span>';
+  }
+  document.getElementById("cdS").innerHTML=stHTML;
+  document.getElementById("y2").classList.toggle("on",now>=new Date("2025-06-01"));
+  document.getElementById("y3").classList.toggle("on",now>=new Date("2026-06-01"));
+  document.getElementById("y4").classList.toggle("on",now>=new Date("2027-06-01"));
+}
+
+// ===== CHARTS =====
+let cfCh,pieCh,fundCh,savCh;
+
+function buildCF(mo){
+  if(cfCh) cfCh.destroy();
+  const lb=Object.keys(mo).sort();
+  cfCh=new Chart(document.getElementById("cfC").getContext("2d"),{
+    type:"bar",
+    data:{labels:lb.map(mLabel),datasets:[
+      {label:"รายรับ",data:lb.map(l=>mo[l].inc),backgroundColor:"rgba(16,185,129,.8)",borderColor:"#10b981",borderWidth:1,borderRadius:3},
+      {label:"รายจ่าย",data:lb.map(l=>-mo[l].exp),backgroundColor:"rgba(239,68,68,.8)",borderColor:"#ef4444",borderWidth:1,borderRadius:3},
+      {label:"เงินเก็บ",data:lb.map(l=>-mo[l].sav),backgroundColor:"rgba(124,58,237,.7)",borderColor:"#7c3aed",borderWidth:1,borderRadius:3},
+      {label:"Net",data:lb.map(l=>mo[l].inc-mo[l].exp-mo[l].sav),type:"line",borderColor:"#fcd34d",backgroundColor:"rgba(252,211,77,.08)",borderWidth:2,pointRadius:3,tension:.3,fill:true}
+    ]},
+    options:{responsive:true,interaction:{mode:"index",intersect:false},
+      plugins:{legend:{labels:{color:"#94a3b8",font:{size:11}},position:"top"},tooltip:{callbacks:{label:c=>" "+c.dataset.label+": ฿"+fmt(Math.abs(c.parsed.y))}}},
+      scales:{x:{stacked:true,ticks:{color:"#64748b",font:{size:10},maxRotation:45},grid:{color:"#1e1e38"}},y:{stacked:true,ticks:{color:"#64748b",font:{size:10},callback:v=>"฿"+fmt(v)},grid:{color:"#1e1e38"}}}}
+  });
+}
+
+function buildPie(bk){
+  if(pieCh) pieCh.destroy();
+  const top=bk.slice(0,12);
+  pieCh=new Chart(document.getElementById("pieC").getContext("2d"),{
+    type:"doughnut",
+    data:{labels:top.map(x=>x[0]),datasets:[{data:top.map(x=>x[1]),backgroundColor:COLORS.slice(0,top.length),borderColor:"#14142a",borderWidth:2,hoverOffset:8}]},
+    options:{responsive:true,cutout:"55%",plugins:{legend:{position:"bottom",labels:{color:"#94a3b8",font:{size:10},padding:7,boxWidth:11}},tooltip:{callbacks:{label:c=>{const t=top.reduce((a,b)=>a+b[1],0);return " ฿"+fmt(c.parsed)+" ("+((c.parsed/t)*100).toFixed(1)+"%)";}}}}}
+  });
+}
+
+function buildFund(mo){
+  if(fundCh) fundCh.destroy();
+  const lb=Object.keys(mo).sort();
+  let last=0;
+  const fd=lb.map(l=>{if(mo[l].fund>0)last=mo[l].fund;return last;});
+  fundCh=new Chart(document.getElementById("fundC").getContext("2d"),{
+    type:"line",
+    data:{labels:lb.map(mSh),datasets:[{label:"Balance Fund (฿)",data:fd,borderColor:"#06b6d4",backgroundColor:"rgba(6,182,212,.12)",borderWidth:2.5,pointRadius:4,pointBackgroundColor:"#06b6d4",tension:.4,fill:true}]},
+    options:{responsive:true,plugins:{legend:{labels:{color:"#94a3b8",font:{size:11}}},tooltip:{callbacks:{label:c=>" ฿"+fmt(c.parsed.y)}}},scales:{x:{ticks:{color:"#64748b",font:{size:10}},grid:{color:"#1e1e38"}},y:{ticks:{color:"#64748b",font:{size:10},callback:v=>"฿"+fmt(v)},grid:{color:"#1e1e38"}}}}
+  });
+}
+
+function buildSav(d){
+  if(savCh) savCh.destroy();
+  const byM={};
+  d.forEach(t=>{if(t.category==="Saving"&&t.amount<0){const m=t.date.substring(0,7);if(!byM[m])byM[m]=0;byM[m]+=Math.abs(t.amount);}});
+  const lb=Object.keys(byM).sort();
+  let cum=0;
+  const cumD=lb.map(m=>{cum+=byM[m];return cum;});
+  savCh=new Chart(document.getElementById("savC").getContext("2d"),{
+    type:"bar",
+    data:{labels:lb.map(mSh),datasets:[
+      {label:"เงินเก็บรายเดือน",data:lb.map(m=>byM[m]),backgroundColor:"rgba(124,58,237,.7)",borderColor:"#7c3aed",borderWidth:1,borderRadius:3},
+      {label:"สะสมทั้งหมด",data:cumD,type:"line",borderColor:"#a78bfa",backgroundColor:"rgba(167,139,250,.08)",borderWidth:2,pointRadius:3,tension:.4,fill:true}
+    ]},
+    options:{responsive:true,plugins:{legend:{labels:{color:"#94a3b8",font:{size:11}},position:"top"},tooltip:{callbacks:{label:c=>" ฿"+fmt(c.parsed.y)}}},scales:{x:{ticks:{color:"#64748b",font:{size:10}},grid:{color:"#1e1e38"}},y:{ticks:{color:"#64748b",font:{size:10},callback:v=>"฿"+fmt(v)},grid:{color:"#1e1e38"}}}}
+  });
+}
+
+function buildExpTbl(bk){
+  const total=bk.reduce((s,x)=>s+x[1],0);
+  let h='<div style="overflow-x:auto"><table class="exp-tbl"><thead><tr><th>รายการ</th><th>สะสม</th><th>%</th><th>Bar</th></tr></thead><tbody>';
+  bk.forEach(([desc,amt],i)=>{
+    const pct=((amt/total)*100).toFixed(1),bw=Math.round((amt/bk[0][1])*130),c=COLORS[i%COLORS.length];
+    h+=`<tr><td>${desc}</td><td style="font-weight:600;color:#e2e8f0">฿${fmt(amt)}</td><td style="color:#94a3b8">${pct}%</td><td><span class="bm" style="width:${bw}px;background:${c}"></span></td></tr>`;
+  });
+  h+=`<tr style="border-top:2px solid #2d2d50"><td style="font-weight:700">รวมทั้งหมด</td><td style="font-weight:700;color:#f87171">฿${fmt(total)}</td><td>100%</td><td></td></tr></tbody></table></div>`;
+  document.getElementById("expTbl").innerHTML=h;
+}
+
+function buildMTbl(mo){
+  const lb=Object.keys(mo).sort().reverse();
+  let h="";
+  lb.forEach(l=>{
+    const d=mo[l],net=d.inc-d.exp-d.sav,nc=net>=0?"#34d399":"#f87171",badge=net>=0?'<span class="badge bg">+</span>':'<span class="badge br">-</span>';
+    h+=`<tr><td style="font-weight:600">${mLabel(l)}</td><td style="color:#34d399">฿${fmt(d.inc)}</td><td style="color:#f87171">฿${fmt(d.exp)}</td><td style="color:#a78bfa">฿${fmt(d.sav)}</td><td style="color:${nc};font-weight:600">฿${fmt(net)}</td><td>${badge}</td></tr>`;
+  });
+  document.getElementById("mTbl").innerHTML=h;
+}
+
+// ===== MAIN =====
+function go(){
+  const d=getFiltered(),kpi=compKPI(d),mo=getMonthly(d),bk=getBreakdown(d);
+  document.getElementById("k1").textContent="฿"+fmt(kpi.inc);
+  document.getElementById("k1s").textContent="รายรับรวมในช่วงที่เลือก";
+  document.getElementById("k2").textContent="฿"+fmt(kpi.exp);
+  document.getElementById("k2s").textContent="Monthly + Yearly expenses";
+  document.getElementById("k3").textContent="฿"+fmt(kpi.sav);
+  document.getElementById("k3s").textContent="โอนไป SCB/Dime";
+  document.getElementById("k4").textContent="฿"+fmt(kpi.fund);
+  document.getElementById("k4s").textContent="Balance Fund ล่าสุด";
+  document.getElementById("k5").textContent="฿"+fmt(kpi.cash);
+  document.getElementById("k5s").textContent=kpi.cash>=0?"เงินสดคงเหลือพร้อมใช้":"⚠️ ติดลบ — ตรวจสอบ";
+  document.getElementById("k5").style.color=kpi.cash>=0?"#fcd34d":"#f87171";
+  document.getElementById("upd").textContent=new Date().toLocaleDateString("th-TH",{year:"numeric",month:"long",day:"numeric",hour:"2-digit",minute:"2-digit"});
+  buildCF(mo);buildPie(bk);buildFund(mo);buildSav(d);buildExpTbl(bk);buildMTbl(mo);
+  updateTracker();
+}
+
+// Auto-load from Google Sheets on page open (URL is now configured)
+go(); // render with embedded data first (instant)
+loadFromSheets(); // then fetch live data in background
+setInterval(()=>{updateTracker();},60000);
+// Auto-refresh from Sheets every 5 minutes
+setInterval(()=>{ if(usingSheets) loadFromSheets(); }, 5*60*1000);
+</script>
+</body>
+</html>
